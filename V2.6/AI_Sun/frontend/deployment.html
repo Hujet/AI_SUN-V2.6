@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI_Sun — Deployment Guide</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>AI_Sun — Deployment Guide</h1>
+    <div class="actions">
+      <button id="printBtn">Print</button>
+      <button id="downloadBtn">Download MD</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <nav id="toc" class="toc" aria-label="Table of contents"></nav>
+    <article id="content" class="content"></article>
+  </main>
+
+  <footer class="site-footer">Source: DEPLOYMENT.md</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+  <script>
+    async function loadAndRender() {
+      try {
+        const resp = await fetch('../DEPLOYMENT.md');
+        if (!resp.ok) throw new Error('Failed to load DEPLOYMENT.md');
+        const md = await resp.text();
+        const html = marked.parse(md, {headerIds: true, mangle: false});
+        document.getElementById('content').innerHTML = html;
+        buildTOC();
+        hljs.highlightAll();
+        setupActions(md);
+      } catch (e) {
+        document.getElementById('content').textContent = 'Error loading document: ' + e.message;
+      }
+    }
+
+    function buildTOC() {
+      const content = document.getElementById('content');
+      const headings = content.querySelectorAll('h1,h2,h3');
+      const toc = document.getElementById('toc');
+      if (!headings.length) { toc.style.display = 'none'; return; }
+      const ul = document.createElement('ul');
+      headings.forEach(h => {
+        const li = document.createElement('li');
+        li.className = h.tagName.toLowerCase();
+        const a = document.createElement('a');
+        const id = h.id || h.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-');
+        h.id = id;
+        a.href = '#' + id;
+        a.textContent = h.textContent;
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+      toc.appendChild(ul);
+    }
+
+    function setupActions(md) {
+      document.getElementById('printBtn').addEventListener('click', () => window.print());
+      document.getElementById('downloadBtn').addEventListener('click', () => {
+        const blob = new Blob([md], {type: 'text/markdown;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'DEPLOYMENT.md';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', loadAndRender);
+  </script>
+</body>
+</html>

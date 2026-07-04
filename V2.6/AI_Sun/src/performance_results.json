@@ -1,0 +1,94 @@
+{
+  "summary": {
+    "num_images": 3,
+    "metrics_by_type": {
+      "sunspots": {
+        "old_count": 132,
+        "new_count": 144,
+        "has_ground_truth": false,
+        "old_avg_confidence": 0.33119811306465,
+        "new_avg_confidence": 0.0,
+        "old_avg_area": 178.15151515151516,
+        "new_avg_area": 1051.5833333333333
+      },
+      "plages": {
+        "old_count": 248,
+        "new_count": 490,
+        "has_ground_truth": false,
+        "old_avg_confidence": 0.6467526860454806,
+        "new_avg_confidence": 0.0,
+        "old_avg_area": 370.1008064516129,
+        "new_avg_area": 21.33061224489796
+      },
+      "prominences": {
+        "old_count": 53,
+        "new_count": 40,
+        "has_ground_truth": false,
+        "old_avg_confidence": 0.5604048076923077,
+        "new_avg_confidence": 0.739895,
+        "old_avg_area": 11975.913461538461,
+        "new_avg_area": 283.925
+      }
+    },
+    "old_conservative_total_sunspots": 132,
+    "old_optimized_total_sunspots": 226,
+    "new_total_sunspots": 144,
+    "old_conservative_total_plages": 248,
+    "old_optimized_total_plages": 162,
+    "new_total_plages": 490,
+    "old_conservative_total_prominences": 53,
+    "old_optimized_total_prominences": 60,
+    "new_total_prominences": 40,
+    "old_conservative_avg_time_ms": 672.4355220794678,
+    "old_optimized_avg_time_ms": 949.5700200398763,
+    "new_avg_time_ms": 21600.408871968586,
+    "total_time_seconds": 69.6672432422638
+  },
+  "per_image_results": [
+    {
+      "image_path": "D:\\天文课题\\AI_SUN\\AI_Sun 2.0\\ai_sun\\src\\data\\uploads\\img-20260620-212428-bcf9fe0c.jpg",
+      "old_sunspots": 101,
+      "new_sunspots": 82,
+      "old_plages": 127,
+      "new_plages": 220,
+      "old_prominences": 57,
+      "new_prominences": 17,
+      "old_time_ms": 719.5777893066406,
+      "new_time_ms": 21862.990617752075
+    },
+    {
+      "image_path": "D:\\天文课题\\AI_SUN\\AI_Sun 2.0\\ai_sun\\src\\data\\uploads\\img-20260620-125120-4d3afc43.jpg",
+      "old_sunspots": 30,
+      "new_sunspots": 57,
+      "old_plages": 121,
+      "new_plages": 181,
+      "old_prominences": 40,
+      "new_prominences": 15,
+      "old_time_ms": 1157.4344635009766,
+      "new_time_ms": 38143.24069023132
+    },
+    {
+      "image_path": "D:\\天文课题\\AI_SUN\\AI_Sun 2.0\\ai_sun\\src\\data\\uploads\\img-20260620-125008-8c099415.jpg",
+      "old_sunspots": 1,
+      "new_sunspots": 5,
+      "old_plages": 0,
+      "new_plages": 89,
+      "old_prominences": 7,
+      "new_prominences": 8,
+      "old_time_ms": 140.29431343078613,
+      "new_time_ms": 4794.995307922363
+    }
+  ],
+  "old_config": {
+    "name": "OLD (原始保守阈值)",
+    "k_threshold": "2.0/1.5/0.8",
+    "min_area": 15,
+    "core_area_ratio": 0.1
+  },
+  "new_config": {
+    "name": "NEW (优化敏感阈值)",
+    "k_threshold": "1.2/1.0/0.8",
+    "min_area": 8,
+    "core_area_ratio": 0.05
+  }
+}

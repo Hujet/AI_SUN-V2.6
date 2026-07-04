@@ -1,0 +1,2948 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="page_title">太阳活动区自动分析系统 v2.1</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: linear-gradient(135deg, #0c1445 0%, #1a1a3e 50%, #0d1b2a 100%); min-height: 100vh; color: #fff; }
+header { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); padding: 0.8rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; z-index: 100; }
+.header-content { max-width: 1600px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+.logo h1 { font-size: 1.15rem; background: linear-gradient(135deg, #ffd700, #ffa500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.nav-links { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+.nav-links a { color: rgba(255,255,255,0.7); text-decoration: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.82rem; transition: all 0.2s; }
+.nav-links a:hover, .nav-links a.active { background: rgba(255,255,255,0.1); color: #ffd700; }
+.conn-status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; }
+.conn-status.online { background: rgba(76,175,80,0.15); color: #4caf50; }
+.conn-status.offline { background: rgba(244,67,54,0.15); color: #f44336; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; }
+.conn-status.online .status-dot { background: #4caf50; }
+.conn-status.offline .status-dot { background: #f44336; }
+.main { max-width: 1600px; margin: 0 auto; padding: 1.5rem; }
+.panel { display: none; }
+.panel.active { display: block; animation: fadeIn 0.3s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.card { background: rgba(255,255,255,0.05); border-radius: 14px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 1.2rem; }
+.card h2 { margin-bottom: 1rem; color: #ffd700; font-size: 1.1rem; }
+.card h3 { margin: 1rem 0 0.5rem; color: #ffd700; font-size: 0.95rem; }
+
+/* Upload */
+.upload-area { border: 2px dashed rgba(255,255,255,0.25); border-radius: 10px; padding: 2rem; text-align: center; cursor: pointer; position: relative; transition: all 0.3s; }
+.upload-area:hover, .upload-area.dragover { border-color: #ffd700; background: rgba(255,215,0,0.05); }
+.upload-area input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.preview { display: none; align-items: center; gap: 1.5rem; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+.preview img { max-width: 160px; max-height: 160px; border-radius: 6px; }
+.preview-info { flex: 1; }
+
+/* Buttons */
+.btn { padding: 0.6rem 1.5rem; border: none; border-radius: 7px; font-size: 0.88rem; cursor: pointer; transition: all 0.2s; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.btn-primary { background: linear-gradient(135deg, #ffd700, #ffa500); color: #1a1a3e; }
+.btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 3px 15px rgba(255,215,0,0.3); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary { background: rgba(255,255,255,0.1); color: #fff; }
+.btn-secondary:hover { background: rgba(255,255,255,0.2); }
+.btn-danger { background: rgba(244,67,54,0.2); color: #f44336; }
+.btn-danger:hover { background: rgba(244,67,54,0.3); }
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.78rem; border-radius: 5px; }
+.btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Progress */
+.progress-section { display: none; margin-top: 1rem; }
+.progress-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 0.3rem; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #ffd700, #ffa500); border-radius: 3px; transition: width 0.3s; width: 0; }
+.progress-text { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+.process-steps { margin-top: 0.8rem; }
+.process-step { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+.process-step.active { color: #ffd700; }
+.process-step.done { color: #4ade80; }
+.step-icon { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+
+/* Analysis Result */
+.result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; padding-bottom: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1); flex-wrap: wrap; gap: 0.8rem; }
+.risk-badge { display: inline-block; padding: 0.3rem 1rem; border-radius: 16px; font-weight: 600; font-size: 0.8rem; }
+.risk-low { background: rgba(74,222,128,0.2); color: #4ade80; }
+.risk-moderate { background: rgba(250,204,21,0.2); color: #facc15; }
+.risk-high { background: rgba(248,113,113,0.2); color: #f87171; }
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8rem; margin-bottom: 1.2rem; }
+.metric { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 1rem; border: 1px solid rgba(255,255,255,0.08); text-align: center; }
+.metric-value { font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, #ffd700, #ffa500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.metric-label { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 0.2rem; }
+.annotated-img { max-width: 100%; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin: 0.8rem 0; }
+.feature-list { list-style: none; }
+.feature-list li { padding: 0.6rem 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem; }
+.feature-list li:last-child { border-bottom: none; }
+.ft-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 600; }
+.ft-sunspot { background: rgba(0,255,0,0.15); color: #4ade80; }
+.ft-flare { background: rgba(255,68,68,0.15); color: #f87171; }
+.ft-bright_region { background: rgba(255,215,0,0.15); color: #facc15; }
+.ft-plage { background: rgba(0,191,255,0.15); color: #38bdf8; }
+.ft-filament { background: rgba(147,112,219,0.15); color: #b39ddb; }
+.ft-prominence { background: rgba(255,215,0,0.15); color: #facc15; }
+.ft-facula { background: rgba(168,85,247,0.15); color: #a78bfa; }
+
+/* Feature Flag Buttons */
+.flag-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 4px; font-size: 0.75rem;
+    cursor: pointer; transition: all 0.15s; user-select: none;
+    border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.05);
+}
+.flag-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.flag-btn.flag-active { border-color: currentColor; }
+.flag-btn[title="正确"] { color: #4ade80; }
+.flag-btn[title="正确"].flag-active { background: rgba(74,222,128,0.2); }
+.flag-btn[title="误判"] { color: #f87171; }
+.flag-btn[title="误判"].flag-active { background: rgba(248,113,113,0.2); }
+.flag-btn[title="可疑"] { color: #facc15; }
+.flag-btn[title="可疑"].flag-active { background: rgba(250,204,21,0.2); }
+
+/* Tables */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th { padding: 0.6rem 0.8rem; text-align: left; color: rgba(255,255,255,0.5); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.08); }
+td { padding: 0.6rem 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: rgba(255,255,255,0.85); }
+tr:hover td { background: rgba(255,255,255,0.03); }
+.monospace { font-family: 'Consolas', monospace; font-size: 0.78rem; }
+
+/* Charts */
+.charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1rem; }
+.chart-box { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 0.8rem; border: 1px solid rgba(255,255,255,0.08); }
+.chart-box img { width: 100%; border-radius: 4px; }
+
+/* Filters */
+.filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+.filter-bar select, .filter-bar input { padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #fff; font-size: 0.82rem; }
+.filter-bar input[type="date"] { color-scheme: dark; }
+
+/* Review Panel */
+.review-form { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 0.78rem; color: rgba(255,255,255,0.6); }
+.form-group input, .form-group select, .form-group textarea {
+    padding: 0.5rem 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px; color: #fff; font-size: 0.82rem;
+}
+.form-group textarea { min-height: 60px; resize: vertical; }
+.review-status { padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 600; }
+.rs-pending { background: rgba(250,204,21,0.2); color: #facc15; }
+.rs-confirmed { background: rgba(74,222,128,0.2); color: #4ade80; }
+.rs-corrected { background: rgba(96,165,250,0.2); color: #60a5fa; }
+.rs-disputed { background: rgba(248,113,113,0.2); color: #f87171; }
+
+/* Admin */
+.admin-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.8rem; }
+.admin-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 1.2rem; border: 1px solid rgba(255,255,255,0.08); }
+.admin-card h4 { font-size: 0.78rem; color: rgba(255,255,255,0.5); margin-bottom: 0.5rem; }
+.admin-card .val { font-size: 1.6rem; font-weight: 700; color: #ffd700; }
+
+/* Model Selection */
+.model-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.6rem; }
+.model-card { background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.8rem; cursor: pointer; transition: all 0.2s; }
+.model-card:hover { border-color: rgba(255,215,0,0.3); background: rgba(255,215,0,0.05); }
+.model-card.selected { border-color: #ffd700; background: rgba(255,215,0,0.1); }
+.model-card.disabled { opacity: 0.5; cursor: not-allowed; }
+.model-card h4 { font-size: 0.85rem; color: #ffd700; margin-bottom: 0.3rem; }
+.model-card .desc { font-size: 0.72rem; color: rgba(255,255,255,0.6); margin-bottom: 0.4rem; }
+.model-card .strengths { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.model-card .tag { font-size: 0.65rem; padding: 0.15rem 0.5rem; background: rgba(255,215,0,0.15); color: #ffd700; border-radius: 4px; }
+.model-card .status { font-size: 0.7rem; color: #4ade80; margin-top: 0.4rem; }
+.model-card .status.offline { color: #f44336; }
+
+/* Traceability */
+.trace-steps { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin: 0.5rem 0; }
+.trace-step { padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.trace-step:last-child { border-bottom: none; }
+.trace-step .label { color: #ffd700; font-weight: 600; font-size: 0.82rem; }
+.trace-step .detail { color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 2px; }
+.trace-json { background: rgba(0,0,0,0.3); border-radius: 6px; padding: 0.8rem; font-family: monospace; font-size: 0.75rem; color: #a5f3fc; max-height: 200px; overflow-y: auto; margin-top: 0.5rem; white-space: pre-wrap; word-break: break-all; }
+
+/* Token usage */
+.token-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.6rem; }
+.token-card { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 0.8rem; text-align: center; border: 1px solid rgba(255,255,255,0.08); }
+.token-card .val { font-size: 1.2rem; font-weight: 700; color: #ffd700; }
+.token-card .lbl { font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
+.modal-overlay.active { display: flex; }
+.modal { background: #1a1a3e; border-radius: 14px; padding: 2rem; max-width: 800px; width: 90%; max-height: 85vh; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1); }
+.modal h3 { color: #ffd700; margin-bottom: 1rem; }
+.modal-close { float: right; background: none; border: none; color: rgba(255,255,255,0.5); font-size: 1.5rem; cursor: pointer; }
+
+/* Toast */
+.toast-container { position: fixed; top: 60px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 6px; }
+.toast { padding: 10px 16px; border-radius: 8px; color: #fff; font-size: 0.85rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: toastIn 0.3s; min-width: 250px; max-width: 400px; display: flex; align-items: center; gap: 8px; }
+.toast-success { background: #1a8a3f; } .toast-error { background: #c0392b; } .toast-warning { background: #d4a017; } .toast-info { background: #1a5276; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(80px); } to { opacity: 1; transform: none; } }
+.toast-close { margin-left: auto; background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 1rem; }
+
+.empty { text-align: center; padding: 2rem; color: rgba(255,255,255,0.35); }
+.empty-icon { font-size: 2.5rem; margin-bottom: 0.8rem; }
+.pagination { display: flex; gap: 0.5rem; align-items: center; justify-content: center; margin-top: 1rem; }
+.pagination span { color: rgba(255,255,255,0.5); font-size: 0.8rem; }
+
+@media (max-width: 768px) {
+    .header-content { flex-direction: column; align-items: flex-start; }
+    .main { padding: 0.8rem; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+    .review-form { grid-template-columns: 1fr; }
+}
+</style>
+<!-- html2canvas for screenshot -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+<header>
+    <div class="header-content">
+        <div style="display:flex;align-items:center;gap:1rem;">
+            <div class="logo"><h1>☀ 太阳活动区自动分析系统 v2.1</h1></div>
+            <span class="conn-status offline" id="connStatus"><span class="status-dot"></span> 离线</span>
+        </div>
+        <div class="nav-links">
+            <a href="#upload" class="active" onclick="switchTab('upload')" data-i18n="nav_upload">上传</a>
+            <a href="#analysis" onclick="switchTab('analysis')" data-i18n="nav_analysis">分析结果</a>
+            <a href="#history" onclick="switchTab('history')" data-i18n="nav_history">历史记录</a>
+            <a href="#statistics" onclick="switchTab('statistics')" data-i18n="nav_statistics">数据统计</a>
+            <a href="#review" onclick="switchTab('review')" data-i18n="nav_review">人工复核</a>
+            <a href="#traceability" onclick="switchTab('traceability')" data-i18n="nav_traceability">追溯记录</a>
+            <a href="#tokens" onclick="switchTab('tokens')" data-i18n="nav_tokens">Token用量</a>
+            <a href="#sunspot" onclick="switchTab('sunspot')" data-i18n="nav_sunspot">黑子检测</a>
+            <a href="#cvupload" onclick="switchTab('cvupload')" data-i18n="nav_cvfiles">CV文件</a>
+            <a href="#apikeys" onclick="switchTab('apikeys')" data-i18n="nav_apikeys">API管理</a>
+            <a href="#comparison" onclick="switchTab('comparison')" data-i18n="nav_comparison">批量对比</a>
+            <a href="#admin" onclick="switchTab('admin')" data-i18n="nav_admin">管理面板</a>
+            <a href="/docs" target="_blank" data-i18n="nav_api">API</a>
+            <select id="langSelect" onchange="switchLang(this.value)" style="margin-left:8px;padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;font-size:0.8rem;cursor:pointer;">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+    </div>
+</header>
+
+<div class="main">
+    <!-- Upload Panel -->
+    <div id="panel-upload" class="panel active">
+        <div class="card">
+            <h2 data-i18n="upload_title">上传太阳图像</h2>
+            <div class="upload-area" id="uploadArea">
+                <div style="font-size:2.5rem;margin-bottom:0.5rem;opacity:0.5;">📁</div>
+                <h3 data-i18n="upload_area_title">拖放图像文件到此处，或点击选择</h3>
+                <p style="color:rgba(255,255,255,0.4);font-size:0.8rem;margin-top:0.3rem;" data-i18n="upload_area_hint">支持格式: JPG, JPEG, PNG, TIFF | 最大: 10MB</p>
+                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/tiff,.jpg,.jpeg,.png,.tif,.tiff">
+            </div>
+            <div style="display:flex;gap:0.8rem;margin-top:1rem;flex-wrap:wrap;">
+                <input type="text" id="imgSource" data-i18n="upload_source" placeholder="数据来源 (如: SDO/HMI)" style="flex:1;min-width:140px;padding:0.5rem 0.8rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:0.82rem;">
+                <input type="text" id="imgWavelength" data-i18n="upload_wavelength" placeholder="波长 (如: 171A)" style="flex:1;min-width:140px;padding:0.5rem 0.8rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:0.82rem;">
+            </div>
+
+            <!-- AI Model Selection - Always visible -->
+            <div class="card" style="margin-top:1rem;background:rgba(0,0,0,0.15);">
+                <h3 style="font-size:0.85rem;color:#ffd700;margin-bottom:0.5rem;" data-i18n="model_selection_title">选择AI模型</h3>
+                <div id="modelSelection" class="model-options"></div>
+                <p style="color:rgba(255,255,255,0.4);font-size:0.75rem;margin-top:0.5rem;">💡 GLM-4V视觉模型直接分析图像，DeepSeek V3作为文本辅助分析</p>
+            </div>
+
+            <!-- Prompt Template Configuration -->
+            <div class="card" style="margin-top:1rem;background:rgba(0,0,0,0.15);">
+                <h3 style="font-size:0.85rem;color:#ffd700;margin-bottom:0.5rem;">📝 提示词模板配置</h3>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.8rem;">
+                    <button class="btn btn-sm" onclick="applyPresetTemplate('balanced_full')" style="background:rgba(74,222,128,0.2);color:#4ade80;border:1px solid #4ade80;">平衡全面</button>
+                    <button class="btn btn-sm" onclick="applyPresetTemplate('strict_sunspot')" style="background:rgba(248,113,113,0.2);color:#f87171;border:1px solid #f87171;">严格黑子</button>
+                    <button class="btn btn-sm" onclick="applyPresetTemplate('sensitive_flare')" style="background:rgba(250,204,21,0.2);color:#facc15;border:1px solid #facc15;">敏感耀斑</button>
+                    <button class="btn btn-sm" onclick="applyPresetTemplate('conservative')" style="background:rgba(167,139,250,0.2);color:#a78bfa;border:1px solid #a78bfa;">保守模式</button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+                    <div>
+                        <label style="font-size:0.75rem;color:rgba(255,255,255,0.5);display:block;margin-bottom:0.3rem;">检测严格程度</label>
+                        <select id="promptStrictness" onchange="onPromptConfigChange()" style="width:100%;padding:0.4rem 0.6rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:0.8rem;">
+                            <option value="strict">严格 - 宁可漏检不误检</option>
+                            <option value="balanced" selected>平衡 - 默认</option>
+                            <option value="sensitive">敏感 - 宁可误检不漏检</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem;color:rgba(255,255,255,0.5);display:block;margin-bottom:0.3rem;">分析重点</label>
+                        <select id="promptFocus" onchange="onPromptConfigChange()" style="width:100%;padding:0.4rem 0.6rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:0.8rem;">
+                            <option value="full" selected>全面分析</option>
+                            <option value="sunspot">黑子检测</option>
+                            <option value="flare">耀斑检测</option>
+                            <option value="activity">活动区分析</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem;color:rgba(255,255,255,0.5);display:block;margin-bottom:0.3rem;">最低置信度: <span id="minConfVal">0.6</span></label>
+                        <input type="range" id="promptMinConfidence" min="0.1" max="1.0" step="0.05" value="0.6" oninput="document.getElementById('minConfVal').textContent=this.value;onPromptConfigChange()" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem;color:rgba(255,255,255,0.5);display:block;margin-bottom:0.3rem;">最大特征数 (0=不限)</label>
+                        <input type="number" id="promptMaxFeatures" min="0" max="50" value="0" onchange="onPromptConfigChange()" style="width:100%;padding:0.4rem 0.6rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:0.8rem;">
+                    </div>
+                </div>
+                <div style="margin-top:0.8rem;">
+                    <label style="font-size:0.75rem;color:rgba(255,255,255,0.5);display:block;margin-bottom:0.3rem;">自定义附加指令（可选）</label>
+                    <textarea id="promptCustomInstructions" rows="2" onchange="onPromptConfigChange()" placeholder="例如：请特别关注图像左上角区域..." style="width:100%;padding:0.4rem 0.6rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:0.8rem;resize:vertical;"></textarea>
+                </div>
+                <div style="display:flex;gap:1rem;margin-top:0.6rem;flex-wrap:wrap;">
+                    <label style="font-size:0.75rem;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:0.3rem;">
+                        <input type="checkbox" id="promptAntiHallucination" checked onchange="onPromptConfigChange()"> 反幻觉指令
+                    </label>
+                    <label style="font-size:0.75rem;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:0.3rem;">
+                        <input type="checkbox" id="promptCoordReminder" checked onchange="onPromptConfigChange()"> 坐标提醒
+                    </label>
+                    <label style="font-size:0.75rem;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:0.3rem;">
+                        <input type="checkbox" id="promptRequireDesc" checked onchange="onPromptConfigChange()"> 要求描述
+                    </label>
+                </div>
+                <p style="color:rgba(255,255,255,0.35);font-size:0.7rem;margin-top:0.5rem;">💡 调整参数后自动生效，点击"上传并分析"时使用当前配置</p>
+            </div>
+
+            <div class="preview" id="previewContainer">
+                <img id="previewImage" alt="Preview">
+                <div class="preview-info">
+                    <h4 id="previewName"></h4>
+                    <p id="previewSize" style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-top:0.3rem;"></p>
+                    
+                    <div class="btn-group" style="margin-top:0.8rem;">
+                        <button class="btn btn-primary" onclick="uploadAndAnalyze()" data-i18n="btn_upload_analyze">上传并分析</button>
+                        <button class="btn btn-secondary" onclick="uploadOnly()">仅上传</button>
+                        <button class="btn btn-secondary" onclick="resetUpload()">取消</button>
+                    </div>
+                </div>
+            </div>
+            <div class="progress-section" id="uploadProgress">
+                <div class="progress-bar"><div class="progress-fill" id="uploadProgressFill"></div></div>
+                <p class="progress-text" id="uploadProgressText"></p>
+            </div>
+            <div class="process-steps" id="processSteps" style="display:none;">
+                <h4 style="font-size:0.82rem;color:rgba(255,255,255,0.6);margin-bottom:0.5rem;">分析流程</h4>
+                <div class="process-step" id="step-preprocess"><span class="step-icon">1</span>图像预处理</div>
+                <div class="process-step" id="step-prompt"><span class="step-icon">2</span>构建分析提示词</div>
+                <div class="process-step" id="step-ai"><span class="step-icon">3</span>AI模型推理</div>
+                <div class="process-step" id="step-parse"><span class="step-icon">4</span>结构化解析</div>
+                <div class="process-step" id="step-annotate"><span class="step-icon">5</span>生成标注图像</div>
+                <div class="process-step" id="step-trace"><span class="step-icon">6</span>保存追溯记录</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Panel -->
+    <div id="panel-analysis" class="panel">
+        <div class="card" id="analysisResult" style="display:none;">
+            <div class="result-header">
+                <div><h2 style="color:#ffd700;font-size:1.1rem;" id="resultTitle">分析报告</h2>
+                <p style="color:rgba(255,255,255,0.5);font-size:0.78rem;" id="resultMeta"></p></div>
+                <span class="risk-badge" id="riskBadge"></span>
+            </div>
+            <div class="metrics-grid" id="metricsGrid"></div>
+            <h3>标注图像</h3>
+            <div style="position:relative;display:inline-block;max-width:100%;">
+                <img class="annotated-img" id="annotatedImage" alt="Annotated" style="display:block;">
+                <canvas id="overlayCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+            </div>
+            <div id="overlayControls" style="display:none;margin-top:0.5rem;padding:0.5rem;background:rgba(0,0,0,0.2);border-radius:8px;">
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+                    <span style="font-size:0.75rem;color:rgba(255,255,255,0.5);">特征叠加层:</span>
+                    <button class="btn btn-sm" id="overlayBtnSunspot" onclick="toggleOverlay('sunspot')" style="background:rgba(0,255,0,0.2);color:#4ade80;border:1px solid #4ade80;">黑子</button>
+                    <button class="btn btn-sm" id="overlayBtnPlage" onclick="toggleOverlay('plage')" style="background:rgba(0,191,255,0.2);color:#38bdf8;border:1px solid #38bdf8;">谱斑</button>
+                    <button class="btn btn-sm" id="overlayBtnFlare" onclick="toggleOverlay('flare')" style="background:rgba(255,68,68,0.2);color:#f87171;border:1px solid #f87171;">耀斑</button>
+                    <button class="btn btn-sm" id="overlayBtnProminence" onclick="toggleOverlay('prominence')" style="background:rgba(255,215,0,0.2);color:#facc15;border:1px solid #facc15;">日珥</button>
+                    <button class="btn btn-sm" id="overlayBtnFacula" onclick="toggleOverlay('facula')" style="background:rgba(168,85,247,0.2);color:#a78bfa;border:1px solid #a78bfa;">光斑</button>
+                    <button class="btn btn-sm" onclick="toggleAllOverlays()" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.3);">全选/全不选</button>
+                </div>
+            </div>
+            <div class="btn-group" style="margin-top:0.5rem;">
+                <button class="btn btn-secondary btn-sm" onclick="viewReportImage()">查看检测报告</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportDetectionCSV()">导出CSV</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportReportPDF()">导出PDF报告</button>
+                <button class="btn btn-secondary btn-sm" onclick="switchTab('history')">📋 历史记录</button>
+            </div>
+            <h3>检测特征详情 (可勾选修正)</h3>
+            <div id="detectionChecklist"></div>
+            <h3>分析摘要与建议</h3>
+            <div id="analysisSummary" style="line-height:1.7;color:rgba(255,255,255,0.85);font-size:0.9rem;"></div>
+            <div class="btn-group" style="margin-top:1rem;">
+                <button class="btn btn-primary" onclick="openReviewModal()">人工复核</button>
+                <button class="btn btn-secondary" onclick="openTraceModal()">查看追溯记录</button>
+                <button class="btn btn-secondary" onclick="archiveCurrentAnalysis()">📦 归档结果</button>
+                <button class="btn btn-secondary" onclick="switchTab('history')">历史记录</button>
+            </div>
+        </div>
+        <div class="empty" id="analysisEmpty">
+            <div class="empty-icon">🔬</div><p>暂无分析结果</p>
+        </div>
+    </div>
+
+    <!-- History Panel -->
+    <div id="panel-history" class="panel">
+        <div class="card">
+            <h2>历史记录</h2>
+            <div class="filter-bar">
+                <select id="histRisk" onchange="loadHistory()"><option value="">全部风险等级</option><option value="low">低风险</option><option value="moderate">中等风险</option><option value="high">高风险</option></select>
+                <select id="histHale" onchange="loadHistory()"><option value="">全部分类</option><option value="Alpha">Alpha</option><option value="Beta">Beta</option><option value="Beta-Gamma">Beta-Gamma</option><option value="Gamma">Gamma</option><option value="Delta">Delta</option><option value="Beta-Delta">Beta-Delta</option></select>
+                <input type="number" id="histMinConf" step="0.1" min="0" max="1" placeholder="最小置信度" onchange="loadHistory()" style="width:100px;">
+                <input type="number" id="histMaxConf" step="0.1" min="0" max="1" placeholder="最大置信度" onchange="loadHistory()" style="width:100px;">
+                <select id="histFeatureType" onchange="loadHistory()"><option value="">全部特征类型</option><option value="sunspot">黑子</option><option value="flare">耀斑</option><option value="bright_region">亮区</option><option value="plage">谱斑</option><option value="filament">暗条</option><option value="coronal_hole">冕洞</option></select>
+                <input type="date" id="histStart" onchange="loadHistory()" title="起始日期">
+                <input type="date" id="histEnd" onchange="loadHistory()" title="结束日期">
+                <button class="btn btn-secondary btn-sm" onclick="loadHistory()">刷新</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportHistoryCSV()">导出CSV</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportHistoryJSON()">导出JSON</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportBatchPDF()">批量导出PDF</button>
+            </div>
+            <div class="table-wrap"><table>
+                <thead><tr><th><input type="checkbox" id="histSelectAll" onclick="toggleSelectAllHistory()" title="全选/取消全选"></th><th>时间</th><th>图像ID</th><th>Hale分类</th><th>复杂度</th><th>置信度</th><th>风险等级</th><th>特征数</th><th>耗时(s)</th><th>操作</th></tr></thead>
+                <tbody id="histTable"></tbody>
+            </table></div>
+            <div class="pagination">
+                <button class="btn btn-secondary btn-sm" id="histPrev" disabled onclick="histPage(-1)">上一页</button>
+                <span id="histPageInfo"></span>
+                <button class="btn btn-secondary btn-sm" id="histNext" disabled onclick="histPage(1)">下一页</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Panel -->
+    <div id="panel-statistics" class="panel">
+        <div class="card">
+            <h2>统计分析</h2>
+            <div class="filter-bar">
+                <button class="btn btn-primary btn-sm" onclick="loadStatistics()">刷新数据</button>
+            </div>
+            <div class="metrics-grid" id="statsMetrics"></div>
+            <div class="charts-grid" id="chartsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Review Panel -->
+    <div id="panel-review" class="panel">
+        <div class="card">
+            <h2>人工复核</h2>
+            <div class="review-form" id="reviewForm">
+                <div class="form-group"><label>报告ID</label><input type="text" id="revReportId" placeholder="自动填充"></div>
+                <div class="form-group"><label>任务ID</label><input type="text" id="revTaskId" placeholder="自动填充"></div>
+                <div class="form-group"><label>复核人</label><input type="text" id="revReviewer" placeholder="操作员姓名"></div>
+                <div class="form-group"><label>状态</label><select id="revStatus"><option value="pending">待确认</option><option value="confirmed">已确认</option><option value="corrected">已修正</option><option value="disputed">有争议</option></select></div>
+                <div class="form-group" style="grid-column:span 2;"><label>修正字段</label><input type="text" id="revFields" placeholder="如: hale_classification, complexity_score"></div>
+                <div class="form-group" style="grid-column:span 2;"><label>备注</label><textarea id="revComments" placeholder="复核意见或修正说明..."></textarea></div>
+            </div>
+            <!-- Parameter Modification Section -->
+            <div class="card" style="margin-top:1rem;background:rgba(0,0,0,0.15);">
+                <h3 data-i18n="param_mod_title">参数修改</h3>
+                <div class="review-form" style="margin-top:0.5rem;">
+                    <div class="form-group"><label data-i18n="param_name">参数名</label><input type="text" id="pmParamName" placeholder="如: hale_classification"></div>
+                    <div class="form-group"><label data-i18n="param_new_value">新值</label><input type="text" id="pmNewValue" placeholder="新值"></div>
+                    <div class="form-group" style="grid-column:span 2;"><label data-i18n="param_reason">修改原因</label><input type="text" id="pmReason" placeholder="修改原因"></div>
+                </div>
+                <div class="btn-group" style="margin-top:0.5rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="addParamChange()">添加修改</button>
+                </div>
+                <div id="pmPendingList" style="margin-top:0.8rem;"></div>
+            </div>
+            <div class="btn-group" style="margin-top:0.8rem;"><button class="btn btn-primary" onclick="submitReview()">提交复核</button></div>
+        </div>
+        <div class="card">
+            <h3>复核记录</h3>
+            <div class="filter-bar">
+                <select id="revFilter" onchange="loadReviews()"><option value="">全部状态</option><option value="pending">待确认</option><option value="confirmed">已确认</option><option value="corrected">已修正</option><option value="disputed">有争议</option></select>
+                <button class="btn btn-secondary btn-sm" onclick="loadReviews()">刷新</button>
+            </div>
+            <div class="table-wrap"><table>
+                <thead><tr><th>ID</th><th>报告ID</th><th>复核人</th><th>状态</th><th>修正字段</th><th>备注</th><th>时间</th><th data-i18n="actions">操作</th></tr></thead>
+                <tbody id="revTable"></tbody>
+            </table></div>
+            <div class="pagination">
+                <span id="revPageInfo"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Traceability Panel -->
+    <div id="panel-traceability" class="panel">
+        <div class="card">
+            <h2>可追溯性记录</h2>
+            <div class="filter-bar">
+                <input type="date" id="traceStart" onchange="loadTraceability()">
+                <input type="date" id="traceEnd" onchange="loadTraceability()">
+                <button class="btn btn-secondary btn-sm" onclick="loadTraceability()">刷新</button>
+            </div>
+            <div class="table-wrap"><table>
+                <thead><tr><th>任务ID</th><th>图像ID</th><th>Hale分类</th><th>特征数</th><th>创建时间</th><th>操作</th></tr></thead>
+                <tbody id="traceTable"></tbody>
+            </table></div>
+        </div>
+    </div>
+
+    <!-- Token Usage Panel -->
+    <div id="panel-tokens" class="panel">
+        <div class="card">
+            <h2>Token 使用量统计</h2>
+            <div class="filter-bar">
+                <select id="tokenPeriod" onchange="loadTokenReport()">
+                    <option value="daily">日报</option>
+                    <option value="weekly" selected>周报</option>
+                    <option value="monthly">月报</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="loadTokenReport()">生成报告</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadTokens()">刷新记录</button>
+            </div>
+            <div class="token-summary" id="tokenSummary"></div>
+            <div id="tokenReport" style="margin-top:1rem;"></div>
+        </div>
+        <div class="card">
+            <h3>使用记录</h3>
+            <div class="table-wrap"><table>
+                <thead><tr><th>时间</th><th>任务ID</th><th>模型</th><th>输入Token</th><th>输出Token</th><th>总计</th><th>费用估算(RMB)</th></tr></thead>
+                <tbody id="tokenTable"></tbody>
+            </table></div>
+        </div>
+    </div>
+
+    <!-- Sunspot Detection Panel -->
+    <div id="panel-sunspot" class="panel">
+        <div class="card">
+            <h2>太阳黑子检测</h2>
+            <div class="filter-bar">
+                <select id="ssImageSelect" style="flex:1;min-width:200px;padding:0.4rem 0.8rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:0.82rem;">
+                    <option value="">-- 请先上传图像 --</option>
+                </select>
+                <button class="btn btn-primary btn-sm" onclick="runSunspotDetect()">开始检测</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadSunspotHistory()">历史记录</button>
+            </div>
+            <div id="ssProgress" class="progress-section" style="display:none;">
+                <div class="progress-bar"><div class="progress-fill" id="ssProgressFill" style="width:0"></div></div>
+                <p class="progress-text" id="ssProgressText">检测中...</p>
+            </div>
+        </div>
+
+        <div id="ssResult" style="display:none;">
+            <div class="card">
+                <div class="result-header">
+                    <div><h2 style="color:#ffd700;font-size:1.1rem;">检测结果</h2>
+                    <p style="color:rgba(255,255,255,0.5);font-size:0.78rem;" id="ssResultMeta"></p></div>
+                </div>
+                <div class="metrics-grid" id="ssMetrics"></div>
+                <h3>标注图像</h3>
+                <img class="annotated-img" id="ssAnnotatedImage" alt="Annotated Detection">
+                <h3>检测到的黑子</h3>
+                <div class="table-wrap"><table>
+                    <thead><tr><th>#</th><th>X(px)</th><th>Y(px)</th><th>归一化X</th><th>归一化Y</th><th>面积(px²)</th><th>直径(px)</th><th>置信度</th><th>区域</th><th>距中心</th></tr></thead>
+                    <tbody id="ssSpotTable"></tbody>
+                </table></div>
+                <h3>日面边界信息</h3>
+                <div id="ssDiskInfo" style="font-size:0.85rem;color:rgba(255,255,255,0.7);line-height:1.8;"></div>
+                <div class="btn-group" style="margin-top:1rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="exportSunspotCSV()">导出CSV</button>
+                    <button class="btn btn-secondary btn-sm" onclick="switchTab('upload')">上传新图像</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>检测历史</h3>
+            <div class="table-wrap"><table>
+                <thead><tr><th>时间</th><th>图像</th><th>黑子数</th><th>中心区</th><th>中纬区</th><th>边缘区</th><th>耗时(ms)</th><th>操作</th></tr></thead>
+                <tbody id="ssHistTable"></tbody>
+            </table></div>
+        </div>
+
+        <div class="card">
+            <h3>统计数据</h3>
+            <div class="metrics-grid" id="ssStatsGrid"></div>
+        </div>
+    </div>
+
+    <!-- CV Upload Panel -->
+    <div id="panel-cvupload" class="panel">
+        <div class="card">
+            <h2>CV文件上传与管理</h2>
+            <div class="upload-area" id="cvUploadArea">
+                <div style="font-size:2.5rem;margin-bottom:0.5rem;opacity:0.5;">📄</div>
+                <h3>拖放CV文件到此处，或点击选择</h3>
+                <p style="color:rgba(255,255,255,0.4);font-size:0.8rem;margin-top:0.3rem;">支持格式: JSON, TXT, CSV, PNG, JPG, PDF | 最大: 5MB</p>
+                <input type="file" id="cvFileInput" accept=".json,.txt,.csv,.png,.jpg,.jpeg,.pdf">
+            </div>
+            <div class="preview" id="cvPreviewContainer" style="display:none;">
+                <div class="preview-info">
+                    <h4 id="cvFileName"></h4>
+                    <p id="cvFileSize" style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-top:0.3rem;"></p>
+                    <div class="btn-group" style="margin-top:0.8rem;">
+                        <button class="btn btn-primary" onclick="uploadCVFile()">上传文件</button>
+                        <button class="btn btn-secondary" onclick="resetCVUpload()">取消</button>
+                    </div>
+                </div>
+            </div>
+            <div id="cvPreviewContent" style="display:none;background:rgba(0,0,0,0.3);border-radius:8px;padding:1rem;margin-top:1rem;max-height:400px;overflow-y:auto;font-family:monospace;font-size:0.8rem;color:#a5f3fc;"></div>
+        </div>
+        <div class="card">
+            <h3>已上传的CV文件</h3>
+            <div class="filter-bar">
+                <select id="cvFileType" onchange="loadCVFiles()"><option value="">全部类型</option><option value="json">JSON</option><option value="txt">TXT</option><option value="csv">CSV</option><option value="image">图像</option><option value="pdf">PDF</option></select>
+                <button class="btn btn-secondary btn-sm" onclick="loadCVFiles()">刷新</button>
+            </div>
+            <div class="table-wrap"><table>
+                <thead><tr><th>文件名</th><th>类型</th><th>大小</th><th>上传时间</th><th>操作</th></tr></thead>
+                <tbody id="cvFileTable"></tbody>
+            </table></div>
+        </div>
+    </div>
+
+    <!-- API Keys Panel -->
+    <div id="panel-apikeys" class="panel">
+        <div class="card">
+            <h2 data-i18n="apikeys_title">API 密钥管理</h2>
+            <div class="btn-group" style="margin-bottom:1rem;">
+                <button class="btn btn-primary btn-sm" onclick="showAddApiKeyForm()">添加密钥</button>
+                <button class="btn btn-secondary btn-sm" onclick="showImportApiKeysForm()">批量导入</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadApiKeys()">刷新</button>
+            </div>
+            <!-- Add API Key Form -->
+            <div id="apiKeyForm" style="display:none;background:rgba(0,0,0,0.2);border-radius:10px;padding:1rem;margin-bottom:1rem;">
+                <h3 data-i18n="add_key_title">添加 API 密钥</h3>
+                <div class="review-form" style="margin-top:0.8rem;">
+                    <div class="form-group"><label data-i18n="key_name">名称</label><input type="text" id="akName" placeholder="密钥名称"></div>
+                    <div class="form-group"><label data-i18n="key_provider">提供商</label><input type="text" id="akProvider" placeholder="如: openai, zhipu"></div>
+                    <div class="form-group"><label data-i18n="key_value">API Key</label><input type="password" id="akKey" placeholder="sk-..."></div>
+                    <div class="form-group"><label data-i18n="key_base_url">Base URL</label><input type="text" id="akBaseUrl" placeholder="https://api.example.com/v1"></div>
+                    <div class="form-group" style="grid-column:span 2;"><label data-i18n="key_model">模型名称</label><input type="text" id="akModelName" placeholder="如: gpt-4, glm-4"></div>
+                </div>
+                <div class="btn-group" style="margin-top:0.8rem;">
+                    <button class="btn btn-primary btn-sm" onclick="saveApiKey()">保存</button>
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('apiKeyForm').style.display='none'">取消</button>
+                </div>
+            </div>
+            <!-- Import Form -->
+            <div id="apiKeyImportForm" style="display:none;background:rgba(0,0,0,0.2);border-radius:10px;padding:1rem;margin-bottom:1rem;">
+                <h3 data-i18n="import_keys_title">批量导入 API 密钥</h3>
+                <div class="form-group" style="margin-top:0.8rem;">
+                    <label data-i18n="import_json">JSON 数组</label>
+                    <textarea id="akImportJson" placeholder='[{"name":"key1","provider":"openai","api_key":"sk-...","api_base_url":"https://...","model_name":"gpt-4"}]' style="min-height:120px;width:100%;padding:0.5rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-family:monospace;font-size:0.8rem;"></textarea>
+                </div>
+                <div class="btn-group" style="margin-top:0.8rem;">
+                    <button class="btn btn-primary btn-sm" onclick="importApiKeys()">导入</button>
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('apiKeyImportForm').style.display='none'">取消</button>
+                </div>
+            </div>
+            <!-- Edit Form -->
+            <div id="apiKeyEditForm" style="display:none;background:rgba(0,0,0,0.2);border-radius:10px;padding:1rem;margin-bottom:1rem;">
+                <h3 data-i18n="edit_key_title">编辑 API 密钥</h3>
+                <input type="hidden" id="akEditId">
+                <div class="review-form" style="margin-top:0.8rem;">
+                    <div class="form-group"><label data-i18n="key_name">名称</label><input type="text" id="akEditName" placeholder="密钥名称"></div>
+                    <div class="form-group"><label data-i18n="key_provider">提供商</label><input type="text" id="akEditProvider" placeholder="如: openai, zhipu"></div>
+                    <div class="form-group"><label data-i18n="key_value">API Key</label><input type="password" id="akEditKey" placeholder="留空不修改"></div>
+                    <div class="form-group"><label data-i18n="key_base_url">Base URL</label><input type="text" id="akEditBaseUrl" placeholder="https://api.example.com/v1"></div>
+                    <div class="form-group" style="grid-column:span 2;"><label data-i18n="key_model">模型名称</label><input type="text" id="akEditModelName" placeholder="如: gpt-4, glm-4"></div>
+                </div>
+                <div class="btn-group" style="margin-top:0.8rem;">
+                    <button class="btn btn-primary btn-sm" onclick="updateApiKey()">更新</button>
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('apiKeyEditForm').style.display='none'">取消</button>
+                </div>
+            </div>
+            <!-- API Keys List -->
+            <div class="table-wrap"><table>
+                <thead><tr><th>ID</th><th data-i18n="key_name">名称</th><th data-i18n="key_provider">提供商</th><th>API Key</th><th>Base URL</th><th data-i18n="key_model">模型</th><th data-i18n="actions">操作</th></tr></thead>
+                <tbody id="apiKeyTable"></tbody>
+            </table></div>
+        </div>
+    </div>
+
+    <!-- Comparison Panel -->
+    <div id="panel-comparison" class="panel">
+        <div class="card">
+            <h2 data-i18n="comparison_title">批量对比分析</h2>
+            <div class="filter-bar">
+                <input type="date" id="compStart" onchange="loadComparison()" title="起始日期">
+                <input type="date" id="compEnd" onchange="loadComparison()" title="结束日期">
+                <button class="btn btn-primary btn-sm" onclick="loadComparison()">刷新</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportCompCSV()">导出CSV</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportCompJSON()">导出JSON</button>
+            </div>
+            <!-- Summary Metrics -->
+            <div class="metrics-grid" id="compMetrics"></div>
+            <!-- Trend Chart -->
+            <div id="compTrends" style="margin-top:1rem;"></div>
+            <!-- Details Table -->
+            <h3 data-i18n="comparison_details" style="margin-top:1rem;color:#ffd700;">对比详情</h3>
+            <div class="table-wrap"><table>
+                <thead><tr><th>时间</th><th>图像</th><th>AI Hale</th><th>人工 Hale</th><th>AI 复杂度</th><th>人工 复杂度</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody id="compTable"></tbody>
+            </table></div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="panel-admin" class="panel">
+        <div class="card">
+            <h2>管理员控制面板</h2>
+            <div class="btn-group" style="margin-bottom:1rem;">
+                <button class="btn btn-secondary btn-sm" onclick="loadAdminReport()">生成评估报告</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadAdmin()">刷新数据</button>
+            </div>
+            <div class="admin-metrics" id="adminMetrics"></div>
+            <div id="adminReport" style="margin-top:1rem;"></div>
+        </div>
+        <div class="card">
+            <h3>系统配置</h3>
+            <div class="review-form">
+                <div class="form-group"><label>单请求最大Token数</label><input type="number" id="cfgMaxTokens" placeholder="未设置"></div>
+                <div class="form-group"><label>置信度阈值</label><input type="number" step="0.01" id="cfgConfThreshold" placeholder="0.5" min="0" max="1"></div>
+                <div class="form-group"><label>启用启发式回退</label><select id="cfgFallback"><option value="">默认</option><option value="true">是</option><option value="false">否</option></select></div>
+                <div class="form-group" style="justify-content:flex-end;"><button class="btn btn-primary btn-sm" onclick="saveConfig()">保存配置</button></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Modal -->
+<div class="modal-overlay" id="reviewModal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeReviewModal()">&times;</button>
+        <h3>人工复核</h3>
+        <div class="review-form">
+            <div class="form-group"><label>报告ID</label><input type="text" id="mRevReportId"></div>
+            <div class="form-group"><label>任务ID</label><input type="text" id="mRevTaskId"></div>
+            <div class="form-group"><label>复核人</label><input type="text" id="mRevReviewer" placeholder="您的姓名"></div>
+            <div class="form-group"><label>状态</label><select id="mRevStatus"><option value="confirmed">已确认</option><option value="corrected">已修正</option><option value="disputed">有争议</option></select></div>
+            <div class="form-group" style="grid-column:span 2;"><label>修正字段</label><input type="text" id="mRevFields" placeholder="逗号分隔，如: hale_classification,complexity_score"></div>
+            <div class="form-group" style="grid-column:span 2;"><label>备注</label><textarea id="mRevComments" placeholder="复核意见..."></textarea></div>
+        </div>
+        <div class="btn-group" style="margin-top:1rem;"><button class="btn btn-primary" onclick="submitModalReview()">提交</button><button class="btn btn-secondary" onclick="closeReviewModal()">取消</button></div>
+    </div>
+</div>
+
+<!-- Traceability Modal -->
+<div class="modal-overlay" id="traceModal">
+    <div class="modal" style="max-width:900px;">
+        <button class="modal-close" onclick="document.getElementById('traceModal').classList.remove('active')">&times;</button>
+        <h3>追溯记录详情</h3>
+        <div id="traceDetail"></div>
+    </div>
+</div>
+
+<!-- Review Detail Modal -->
+<div class="modal-overlay" id="reviewDetailModal">
+    <div class="modal" style="max-width:900px;">
+        <button class="modal-close" onclick="document.getElementById('reviewDetailModal').classList.remove('active')">&times;</button>
+        <h3 data-i18n="review_detail_title">复核详情</h3>
+        <div id="reviewDetail"></div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+const API = '/api/v1';
+let curPanel = 'upload', histPg = 1, curTask = null, curReport = null, curImageId = null, pollId = null;
+
+// Connection
+let apiConnDetail = {server: 'offline', deepseek: 'unknown', latency: '-'};
+
+async function checkConn() {
+    const el = document.getElementById('connStatus');
+    const start = performance.now();
+    try {
+        const r = await fetch('/health');
+        const d = await r.json();
+        const latency = (performance.now() - start).toFixed(0);
+        if (d.success) {
+            el.className = 'conn-status online';
+            const deepseekLabel = {
+                'connected': '🟢 DeepSeek在线',
+                'disconnected': '🔴 DeepSeek离线',
+                'not_configured': '⚪ DeepSeek未配置',
+                'unknown': '⚪ DeepSeek状态未知'
+            }[d.deepseek_api || 'unknown'];
+            apiConnDetail = {server: 'online', deepseek: d.deepseek_api || 'unknown', latency: latency + 'ms'};
+            el.innerHTML = `<span class="status-dot"></span> <span style="white-space:nowrap;">在线 (${latency}ms) | ${deepseekLabel}</span>`;
+        } else {
+            el.className = 'conn-status offline';
+            el.innerHTML = '<span class="status-dot"></span> 离线';
+            apiConnDetail = {server: 'offline', deepseek: 'unknown', latency: '-'};
+        }
+    } catch(e) {
+        el.className = 'conn-status offline';
+        el.innerHTML = '<span class="status-dot"></span> 离线';
+        apiConnDetail = {server: 'offline', deepseek: 'unknown', latency: '-'};
+    }
+}
+checkConn(); setInterval(checkConn, 30000);
+
+function toast(msg, t='info') {
+    const c = document.getElementById('toastContainer'), d = document.createElement('div');
+    d.className = `toast toast-${t}`;
+    d.innerHTML = `<span>${msg}</span><button class="toast-close" onclick="this.parentElement.remove()">&times;</button>`;
+    c.appendChild(d); setTimeout(() => d.remove(), 5000);
+}
+
+function switchTab(p) {
+    curPanel = p;
+    document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    const pe = document.getElementById(`panel-${p}`); if (pe) pe.classList.add('active');
+    const ae = document.querySelector(`.nav-links a[href="#${p}"]`); if (ae) ae.classList.add('active');
+    if (p === 'history') loadHistory();
+    if (p === 'statistics') loadStatistics();
+    if (p === 'review') loadReviews();
+    if (p === 'traceability') loadTraceability();
+    if (p === 'tokens') loadTokens();
+    if (p === 'admin') loadAdmin();
+    if (p === 'apikeys') loadApiKeys();
+    if (p === 'comparison') loadComparison();
+}
+
+// ===== AI Model Selection =====
+let availableModels = [];
+let selectedModelKey = 'glm';  // default: GLM-4V vision model
+
+async function loadAvailableModels() {
+    try {
+        const r = await fetch(`${API}/models/available`);
+        const d = await r.json();
+        availableModels = d.data?.models || [];
+        
+        // Update model status display without testing connections
+        for (const model of availableModels) {
+            if (model.status === 'configured') {
+                model.connected = null; // Unknown, not tested yet
+            }
+        }
+        
+        // Find first available model as default (prefer one with successful test)
+        const connected = availableModels.find(m => m.available && m.connected === true);
+        if (connected) {
+            selectedModelKey = connected.key;
+        } else {
+            const firstAvailable = availableModels.find(m => m.available);
+            if (firstAvailable) selectedModelKey = firstAvailable.key;
+        }
+        
+        renderModelSelection();
+    } catch(e) {
+        console.error('Failed to load models:', e);
+        availableModels = [];
+        renderModelSelection();
+    }
+}
+
+async function testModelConnection(modelKey) {
+    try {
+        toast('正在测试连接...', 'info');
+        const r = await fetch(`${API}/models/test/${modelKey}`, {method: 'POST'});
+        const d = await r.json();
+        
+        const model = availableModels.find(m => m.key === modelKey);
+        if (model) {
+            model.connected = d.data?.connected || false;
+            model.status = d.data?.connected ? 'connected' : 'error';
+            renderModelSelection();
+        }
+        
+        if (d.success && d.data?.connected) {
+            toast(`${model?.name || modelKey} 连接成功`, 'success');
+        } else {
+            toast(`${model?.name || modelKey} 连接失败: ${d.message || '未知错误'}`, 'error');
+        }
+    } catch(e) {
+        toast('测试连接失败: ' + e.message, 'error');
+    }
+}
+
+function renderModelSelection() {
+    const container = document.getElementById('modelSelection');
+    if (!container) return;
+    
+    if (availableModels.length === 0) {
+        container.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 1.5rem;">
+                <p style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-bottom:0.5rem;">${t('no_models_configured')}</p>
+                <p style="color:rgba(255,255,255,0.3);font-size:0.75rem;">${t('models_config_hint')}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = availableModels.map(model => {
+        const isSelected = model.key === selectedModelKey;
+        const isAvailable = model.available;
+        
+        let statusIcon, statusText, statusClass, statusAction;
+        if (model.connected === true) {
+            statusIcon = '🟢';
+            statusText = model.supports_vision ? t('model_vision_online') : t('model_text_online');
+            statusClass = '';
+        } else if (model.connected === false) {
+            statusIcon = '🔴';
+            statusText = t('model_conn_failed');
+            statusClass = 'offline';
+            statusAction = `<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); testModelConnection('${model.key}')" style="margin-top:0.3rem;font-size:0.7rem;padding:0.2rem 0.5rem;">${t('btn_retest')}</button>`;
+        } else if (isAvailable) {
+            statusIcon = '🟡';
+            statusText = model.supports_vision ? t('model_vision_notest') : t('model_text_notest');
+            statusClass = '';
+            statusAction = `<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); testModelConnection('${model.key}')" style="margin-top:0.3rem;font-size:0.7rem;padding:0.2rem 0.5rem;">${t('btn_test')}</button>`;
+        } else {
+            statusIcon = '⚪';
+            statusText = t('model_not_configured');
+            statusClass = 'disabled';
+            statusAction = `<p style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.3rem;">${t('model_config_page_hint')}</p>`;
+        }
+        
+        return `
+            <div class="model-card ${isSelected ? 'selected' : ''} ${!isAvailable ? 'disabled' : ''}" 
+                 onclick="${!isAvailable ? '' : `selectModel('${model.key}')`}">
+                <h4>${model.name} ${model.supports_vision ? '👁️' : '📝'}</h4>
+                <div class="desc">${model.description || ''}</div>
+                <div class="strengths">
+                    ${(model.strengths || []).slice(0, 3).map(s => `<span class="tag">${s}</span>`).join('')}
+                </div>
+                <div class="status ${statusClass}">
+                    ${statusIcon} ${statusText}
+                </div>
+                ${statusAction || ''}
+            </div>
+        `;
+    }).join('');
+}
+
+function selectModel(modelKey) {
+    const model = availableModels.find(m => m.key === modelKey);
+    if (!model || !model.available) {
+        toast('请先在API管理页面配置该模型的API密钥', 'warning');
+        return;
+    }
+    
+    selectedModelKey = modelKey;
+    renderModelSelection();
+    toast(`已选择: ${model.name}`, 'info');
+    
+    // Show original photo reminder for vision models
+    if (model.supports_vision) {
+        showVisionModelReminder();
+    } else {
+        // Remove vision reminder if switching to text model
+        const reminder = document.getElementById('visionReminder');
+        if (reminder) reminder.remove();
+    }
+}
+
+function showVisionModelReminder() {
+    const existing = document.getElementById('visionReminder');
+    if (existing) existing.remove();
+    
+    const reminder = document.createElement('div');
+    reminder.id = 'visionReminder';
+    reminder.style.cssText = 'background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:8px;padding:0.8rem;margin-top:0.8rem;font-size:0.78rem;';
+    reminder.innerHTML = `
+        <div style="color:#ffd700;font-weight:bold;margin-bottom:0.3rem;">⚠️ 视觉模型原始照片要求</div>
+        <ul style="color:rgba(255,255,255,0.7);margin:0;padding-left:1.2rem;line-height:1.5;">
+            <li>必须上传<strong>未经压缩或格式转换</strong>的原始太阳照片</li>
+            <li>支持格式: <strong>JPG, JPEG, PNG, TIFF</strong></li>
+            <li>文件大小: <strong>不超过10MB</strong></li>
+            <li>请勿上传CV处理后的文件或标注图像</li>
+            <li>建议使用原始观测设备直接导出的图像文件</li>
+        </ul>
+    `;
+    
+    const modelCard = document.getElementById('modelSelection');
+    if (modelCard) {
+        modelCard.parentNode.insertBefore(reminder, modelCard.nextSibling);
+    }
+}
+const uploadArea = document.getElementById('uploadArea'), fileInput = document.getElementById('fileInput');
+let selFile = null;
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', e => { e.preventDefault(); uploadArea.classList.remove('dragover'); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(f) {
+    // Validate file
+    const validation = validateImageFile(f);
+    if (!validation.valid) {
+        toast(validation.error, 'error');
+        fileInput.value = '';
+        return;
+    }
+    
+    selFile = f;
+    document.getElementById('previewImage').src = URL.createObjectURL(f);
+    document.getElementById('previewName').textContent = f.name;
+    document.getElementById('previewSize').textContent = `大小: ${(f.size/1024/1024).toFixed(2)} MB | 类型: ${f.type||'未知'}`;
+    document.getElementById('previewContainer').style.display = 'flex';
+    
+    // Show vision model reminder if a vision model is selected
+    const selectedModel = availableModels.find(m => m.key === selectedModelKey);
+    if (selectedModel && selectedModel.supports_vision) {
+        showVisionModelReminder();
+    }
+}
+
+function validateImageFile(f) {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/tiff', 'image/jpg'];
+    const allowedExts = ['jpg', 'jpeg', 'png', 'tif', 'tiff'];
+    
+    if (!f) return { valid: false, error: '未选择文件' };
+    
+    // Check file size
+    if (f.size > maxSize) {
+        return { valid: false, error: `文件过大 (${(f.size/1024/1024).toFixed(1)}MB)，请上传不超过10MB的原始照片` };
+    }
+    
+    // Check file type
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (!allowedTypes.includes(f.type) && !allowedExts.includes(ext)) {
+        return { valid: false, error: `不支持的文件格式 (${ext})，请上传JPG、PNG或TIFF格式的原始照片` };
+    }
+    
+    // Warn about very small files (likely compressed/processed)
+    if (f.size < 10000) {
+        return { valid: false, error: '文件过小，可能是压缩后的图像，请上传原始观测照片' };
+    }
+    
+    return { valid: true };
+}
+function resetUpload() {
+    selFile = null; fileInput.value = '';
+    document.getElementById('previewContainer').style.display = 'none';
+    document.getElementById('uploadProgress').style.display = 'none';
+    document.getElementById('processSteps').style.display = 'none';
+    
+    // Remove vision model reminder
+    const reminder = document.getElementById('visionReminder');
+    if (reminder) reminder.remove();
+}
+
+async function doUpload() {
+    if (!selFile) return null;
+    const prog = document.getElementById('uploadProgress'), fill = document.getElementById('uploadProgressFill'), txt = document.getElementById('uploadProgressText');
+    prog.style.display = 'block'; fill.style.width = '30%'; txt.textContent = '上传中...';
+    const fd = new FormData(); fd.append('image', selFile);
+    fd.append('source', document.getElementById('imgSource').value || 'user_upload');
+    fd.append('wavelength', document.getElementById('imgWavelength').value || 'unknown');
+    try {
+        const r = await fetch(`${API}/images`, {method:'POST', body:fd});
+        const d = await r.json();
+        fill.style.width = '100%';
+        if (d.success) { txt.textContent = '上传成功!'; toast('图像上传成功', 'success'); setTimeout(() => prog.style.display='none', 1500); resetUpload(); return d.data.id; }
+        else { txt.textContent = `上传失败: ${d.error?.message||'未知'}`; toast(d.error?.message||'上传失败','error'); return null; }
+    } catch(e) { fill.style.width='0'; txt.textContent=`错误: ${e.message}`; toast('网络错误','error'); return null; }
+}
+
+async function uploadOnly() { await doUpload(); }
+
+async function uploadAndAnalyze() {
+    const id = await doUpload();
+    if (id) { curTask = null; curReport = null; await startAnalysis(id, selectedModelKey); }
+}
+
+// Analysis
+async function startAnalysis(imgId, modelKey) {
+    try {
+        const body = {image_id:imgId, model_key: modelKey || 'glm'};
+        // Attach prompt config if available
+        const pc = getPromptConfig();
+        if (pc) body.prompt_config = pc;
+        const r = await fetch(`${API}/analyze`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        const d = await r.json();
+        if (d.success) { curTask = d.data.task_id; toast('分析任务已启动','info'); switchTab('analysis'); pollTask(curTask); }
+        else toast(d.error?.message||'创建任务失败','error');
+    } catch(e) { toast('创建任务失败: '+e.message,'error'); }
+}
+
+// ===== Prompt Template Configuration =====
+function getPromptConfig() {
+    const strictness = document.getElementById('promptStrictness')?.value || 'balanced';
+    const focus = document.getElementById('promptFocus')?.value || 'full';
+    const minConfidence = parseFloat(document.getElementById('promptMinConfidence')?.value || '0.6');
+    const maxFeatures = parseInt(document.getElementById('promptMaxFeatures')?.value || '0');
+    const antiHallucination = document.getElementById('promptAntiHallucination')?.checked ?? true;
+    const coordReminder = document.getElementById('promptCoordReminder')?.checked ?? true;
+    const requireDesc = document.getElementById('promptRequireDesc')?.checked ?? true;
+    const customInstructions = document.getElementById('promptCustomInstructions')?.value || '';
+    return { strictness, focus, min_confidence: minConfidence, max_features: maxFeatures, anti_hallucination: antiHallucination, coordinate_reminder: coordReminder, require_description: requireDesc, custom_instructions: customInstructions };
+}
+
+function onPromptConfigChange() {
+    // Auto-save to localStorage for persistence
+    try { localStorage.setItem('ai_sun_prompt_config', JSON.stringify(getPromptConfig())); } catch(e) {}
+}
+
+function applyPresetTemplate(name) {
+    const presets = {
+        balanced_full: { strictness:'balanced', focus:'full', min_confidence:0.6, max_features:0, anti_hallucination:true, coordinate_reminder:true, require_description:true, custom_instructions:'' },
+        strict_sunspot: { strictness:'strict', focus:'sunspot', min_confidence:0.7, max_features:0, anti_hallucination:true, coordinate_reminder:true, require_description:true, custom_instructions:'' },
+        sensitive_flare: { strictness:'sensitive', focus:'flare', min_confidence:0.4, max_features:0, anti_hallucination:false, coordinate_reminder:true, require_description:true, custom_instructions:'' },
+        conservative: { strictness:'strict', focus:'full', min_confidence:0.8, max_features:10, anti_hallucination:true, coordinate_reminder:true, require_description:true, custom_instructions:'' },
+    };
+    const cfg = presets[name];
+    if (!cfg) return;
+    document.getElementById('promptStrictness').value = cfg.strictness;
+    document.getElementById('promptFocus').value = cfg.focus;
+    document.getElementById('promptMinConfidence').value = cfg.min_confidence;
+    document.getElementById('minConfVal').textContent = cfg.min_confidence;
+    document.getElementById('promptMaxFeatures').value = cfg.max_features;
+    document.getElementById('promptAntiHallucination').checked = cfg.anti_hallucination;
+    document.getElementById('promptCoordReminder').checked = cfg.coordinate_reminder;
+    document.getElementById('promptRequireDesc').checked = cfg.require_description;
+    document.getElementById('promptCustomInstructions').value = cfg.custom_instructions;
+    onPromptConfigChange();
+    toast(`已应用模板: ${name}`, 'info');
+}
+
+function loadPromptConfig() {
+    try {
+        const saved = localStorage.getItem('ai_sun_prompt_config');
+        if (saved) {
+            const cfg = JSON.parse(saved);
+            if (cfg.strictness) document.getElementById('promptStrictness').value = cfg.strictness;
+            if (cfg.focus) document.getElementById('promptFocus').value = cfg.focus;
+            if (cfg.min_confidence !== undefined) { document.getElementById('promptMinConfidence').value = cfg.min_confidence; document.getElementById('minConfVal').textContent = cfg.min_confidence; }
+            if (cfg.max_features !== undefined) document.getElementById('promptMaxFeatures').value = cfg.max_features;
+            if (cfg.anti_hallucination !== undefined) document.getElementById('promptAntiHallucination').checked = cfg.anti_hallucination;
+            if (cfg.coordinate_reminder !== undefined) document.getElementById('promptCoordReminder').checked = cfg.coordinate_reminder;
+            if (cfg.require_description !== undefined) document.getElementById('promptRequireDesc').checked = cfg.require_description;
+            if (cfg.custom_instructions) document.getElementById('promptCustomInstructions').value = cfg.custom_instructions;
+        }
+    } catch(e) {}
+}
+
+function pollTask(tid) {
+    document.getElementById('analysisEmpty').style.display='none';
+    document.getElementById('analysisResult').style.display='none';
+    document.getElementById('processSteps').style.display='block';
+    if (pollId) clearInterval(pollId);
+    pollId = setInterval(async () => {
+        try {
+            const r = await fetch(`${API}/analyze/${tid}`); const d = await r.json();
+            if (!d.success) { clearInterval(pollId); return; }
+            const t = d.data;
+            const prog = t.progress || 0;
+            document.getElementById('uploadProgressFill').style.width = prog + '%';
+            // Show detailed progress message if available
+            const msg = t.message || '';
+            document.getElementById('uploadProgressText').textContent = msg ? `分析进度: ${prog}% - ${msg}` : `分析进度: ${prog}%`;
+
+            // Show process steps based on progress
+            if (prog >= 15) setStep('preprocess','done');
+            if (prog >= 25) setStep('prompt','done');
+            if (prog >= 35) setStep('ai','active');
+            if (prog >= 60) { setStep('ai','done'); setStep('parse','active'); }
+            if (prog >= 80) { setStep('parse','done'); setStep('annotate','active'); }
+            if (prog >= 90) { setStep('annotate','done'); setStep('trace','active'); }
+
+            if (t.status === 'completed') {
+                clearInterval(pollId);
+                setStep('trace','done');
+                // Hide process steps and show results
+                setTimeout(() => {
+                    document.getElementById('processSteps').style.display = 'none';
+                }, 500);
+                await loadResult(t);
+            }
+            else if (t.status === 'failed') {
+                clearInterval(pollId);
+                document.getElementById('processSteps').style.display = 'none';
+                toast(`分析失败: ${t.error||'未知'}`,'error');
+                document.getElementById('analysisEmpty').style.display='block';
+            }
+        } catch {}
+    }, 1000);
+}
+
+function setStep(name, state) {
+    const el = document.getElementById(`step-${name}`);
+    if (el) { el.className = `process-step ${state}`; const icon = el.querySelector('.step-icon'); if (icon) icon.textContent = state === 'done' ? '✓' : el.textContent.trim().charAt(0); }
+}
+
+async function loadResult(task) {
+    try {
+        const r = await fetch(`${API}/analyze/${task.task_id}/report`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        if (!d.success) throw new Error(d.error?.message || '无报告');
+        const rep = d.data, a = rep.analysis || {};
+        document.getElementById('resultTitle').textContent = '太阳活动区分析报告';
+        document.getElementById('resultMeta').textContent = `图像: ${rep.image_info?.filename||'未知'} | 分析时间: ${new Date(rep.generated_at).toLocaleString()} | 耗时: ${rep.processing_time_seconds?.toFixed(1)}s`;
+
+        const rl = a.risk_level || 'unknown';
+        const rb = document.getElementById('riskBadge');
+        rb.textContent = {low:'低风险',moderate:'中等风险',high:'高风险'}[rl] || rl;
+        rb.className = `risk-badge risk-${rl}`;
+
+        const m = a.quantitative_metrics || {};
+        document.getElementById('metricsGrid').innerHTML = [
+            ['Hale分类', a.hale_classification||'Unknown'],
+            ['置信度', `${((a.classification_confidence||0)*100).toFixed(1)}%`],
+            ['复杂度', `${a.complexity_score||0} / 10`],
+            ['特征总数', m.total_features_detected||0],
+            ['黑子数量', m.sunspot_count||0],
+            ['耀斑数量', m.flare_count||0],
+            ['亮区数量', m.bright_region_count||0],
+            ['平均置信度', `${((m.mean_confidence||0)*100).toFixed(1)}%`],
+        ].map(([l,v]) => `<div class="metric"><div class="metric-value">${v}</div><div class="metric-label">${l}</div></div>`).join('');
+
+        const imgEl = document.getElementById('annotatedImage');
+
+        // Use ORIGINAL image as background, all annotations via overlay canvas
+        const origUrl = rep.image_id ? `${API}/images/${rep.image_id}/file` : '';
+        const imageUrl = origUrl || rep.annotated_image_url || '';
+        imgEl.style.display = imageUrl ? 'block' : 'none';
+
+        const features = a.features || [];
+        document.getElementById('detectionChecklist').innerHTML = features.length
+            ? `<ul style="list-style:none;padding:0;margin:0;">${features.map((f, idx) => {
+                const featType = f.type || f.feature_type || 'unknown';
+                const displayIndex = f.index || (idx + 1);  // Global sequential index for display badge
+                const apiIndex = idx + 1;  // Position in flat array (1-based) for API calls
+                const currentFlag = f.flag || '';
+                const isChecked = f.checked !== false;
+                return `
+                <li style="padding:0.3rem 0;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.3rem;">
+                    <span style="display:flex;align-items:center;gap:0.4rem;">
+                        <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${getBadgeColor(featType)};color:#000;font-size:11px;font-weight:700;flex-shrink:0;">${displayIndex}</span>
+                        <input type="checkbox" id="featchk-${apiIndex}" ${isChecked?'checked':''}
+                            onchange="toggleFeatureChecked('${featType}',${apiIndex},this.checked)"
+                            style="cursor:pointer;accent-color:#4ade80;">
+                        <span class="ft-badge ft-${featType}">${f.label||featType}</span>
+                    </span>
+                    <span style="color:rgba(255,255,255,0.5);font-size:0.75rem;">置信度: ${((f.confidence||0)*100).toFixed(1)}% | 位置: (${f.position?.x?.toFixed(2)||'-'}, ${f.position?.y?.toFixed(2)||'-'}) | 尺寸: ${(f.size_relative||0).toFixed(2)}</span>
+                    <span class="flag-btn ${currentFlag==='correct'?'flag-active':''}" onclick="flagFeature('${featType}',${apiIndex},'correct', event)" title="正确">✓</span>
+                    <span class="flag-btn ${currentFlag==='false_positive'?'flag-active':''}" onclick="flagFeature('${featType}',${apiIndex},'false_positive', event)" title="误判">✗</span>
+                    <span class="flag-btn ${currentFlag==='suspicious'?'flag-active':''}" onclick="flagFeature('${featType}',${apiIndex},'suspicious', event)" title="可疑">?</span>
+                </li>`;
+            }).join('')}</ul>` : '<p style="color:rgba(255,255,255,0.4);text-align:center;">未检测到特征</p>';
+
+        // Convert features for overlay canvas - set onload BEFORE src to handle cached images
+        function buildAndShowOverlay() {
+            const imgW = imgEl.naturalWidth || 500;
+            const imgH = imgEl.naturalHeight || 500;
+            const overlayFeats = features.map((f, idx) => {
+                // Priority 1: pixel_position (CV precise coords)
+                const px = f.pixel_position?.x ?? 0;
+                const py = f.pixel_position?.y ?? 0;
+                if (px > 5 || py > 5) {
+                    const sizeScale = f.size_relative || 0.05;
+                    return {
+                        index: idx + 1,
+                        displayIndex: f.index || (idx + 1),
+                        type: f.type || f.feature_type || 'unknown',
+                        label: f.label || '',
+                        position_x: px,
+                        position_y: py,
+                        bbox_width: f.additional_params?.bbox_width ?? Math.max(20, sizeScale * imgW * 0.3),
+                        bbox_height: f.additional_params?.bbox_height ?? Math.max(20, sizeScale * imgH * 0.3),
+                        radius: f.additional_params?.radius ?? Math.max(10, sizeScale * Math.min(imgW, imgH) * 0.15),
+                        x: px,
+                        y: py,
+                        checked: f.checked !== false,
+                    };
+                }
+
+                // Priority 2: position field (0~1 image-relative coordinates from backend)
+                const posX = f.position?.x ?? 0.5;
+                const posY = f.position?.y ?? 0.5;
+                const pixelX = posX * imgW;
+                const pixelY = posY * imgH;
+
+                const sizeScale = f.size_relative || 0.05;
+                return {
+                    index: idx + 1,
+                    displayIndex: f.index || (idx + 1),
+                    type: f.type || f.feature_type || 'unknown',
+                    label: f.label || '',
+                    position_x: pixelX,
+                    position_y: pixelY,
+                    bbox_width: f.additional_params?.bbox_width ?? Math.max(20, sizeScale * imgW * 0.3),
+                    bbox_height: f.additional_params?.bbox_height ?? Math.max(20, sizeScale * imgH * 0.3),
+                    radius: f.additional_params?.radius ?? Math.max(10, sizeScale * Math.min(imgW, imgH) * 0.15),
+                    x: pixelX,
+                    y: pixelY,
+                    checked: f.checked !== false,
+                };
+            });
+            showOverlayControls(overlayFeats);
+        }
+
+        // Set image source and attach onload handler (onload set BEFORE src to handle cached images)
+        if (imageUrl) {
+            imgEl.onload = buildAndShowOverlay;
+            imgEl.onerror = () => {
+                // If image fails to load, still show results without overlay
+                console.warn('Failed to load analysis image');
+            };
+            imgEl.src = imageUrl;
+            // If image is already cached, onload may have already fired
+            if (imgEl.complete && imgEl.naturalWidth > 0) {
+                buildAndShowOverlay();
+            }
+        }
+
+        let html = `<p>${rep.summary||'无分析摘要'}</p>`;
+        if (a.warnings?.length) html += `<p style="margin-top:0.8rem;color:#facc15;">⚠ 注意事项: ${a.warnings.join('; ')}</p>`;
+        if (a.recommendations?.length) html += `<p style="margin-top:0.5rem;color:#4ade80;">✓ 建议: ${a.recommendations.join('; ')}</p>`;
+        document.getElementById('analysisSummary').innerHTML = html;
+
+        document.getElementById('analysisResult').style.display = 'block';
+        curTask = task.task_id; curReport = rep.id;
+        curImageId = rep.image_id || (task.image_id || null);
+        toast('分析完成', 'success');
+    } catch(e) { toast('加载结果失败: '+e.message,'error'); document.getElementById('analysisEmpty').style.display='block'; }
+}
+
+function openReviewModal() {
+    if (!curTask || !curReport) { toast('请先完成分析','warning'); return; }
+    document.getElementById('mRevReportId').value = curReport;
+    document.getElementById('mRevTaskId').value = curTask;
+    document.getElementById('reviewModal').classList.add('active');
+}
+function closeReviewModal() { document.getElementById('reviewModal').classList.remove('active'); }
+
+async function submitModalReview() {
+    const reportId = document.getElementById('mRevReportId').value;
+    const taskId = document.getElementById('mRevTaskId').value;
+    if (!reportId || !taskId) { toast('请填写报告ID和任务ID','warning'); return; }
+    const fields = document.getElementById('mRevFields').value ? document.getElementById('mRevFields').value.split(',').map(s=>s.trim()) : [];
+    try {
+        const r = await fetch(`${API}/reviews`, {method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({report_id: reportId, task_id: taskId, reviewer: document.getElementById('mRevReviewer').value || 'operator',
+                verification_status: document.getElementById('mRevStatus').value, comments: document.getElementById('mRevComments').value, correction_fields: fields})});
+        const d = await r.json();
+        if (d.success) { toast('复核记录已保存','success'); closeReviewModal(); loadReviews(); }
+        else toast(d.error?.message||'提交失败','error');
+    } catch(e) { toast('提交失败: '+e.message,'error'); }
+}
+
+async function openTraceModal() {
+    if (!curTask) { toast('请先完成分析','warning'); return; }
+    try {
+        const r = await fetch(`${API}/traceability/${curTask}`);
+        const d = await r.json();
+        if (!d.success) throw new Error('追溯记录不存在');
+        const rec = d.data;
+        let html = `
+            <div class="trace-steps">
+                <div class="trace-step"><div class="label">任务ID</div><div class="detail monospace">${rec.task_id}</div></div>
+                <div class="trace-step"><div class="label">图像ID</div><div class="detail monospace">${rec.image_id}</div></div>
+                <div class="trace-step"><div class="label">图像哈希</div><div class="detail monospace">${rec.image_hash}</div></div>
+                <div class="trace-step"><div class="label">输入元数据</div><div class="trace-json">${JSON.stringify(rec.input_metadata, null, 2)}</div></div>
+                <div class="trace-step"><div class="label">图像特征</div><div class="trace-json">${JSON.stringify(rec.image_features, null, 2)}</div></div>
+                <div class="trace-step"><div class="label">算法参数</div><div class="trace-json">${JSON.stringify(rec.algorithm_params, null, 2)}</div></div>
+                <div class="trace-step"><div class="label">模型配置</div><div class="trace-json">${JSON.stringify(rec.model_config, null, 2)}</div></div>
+                <div class="trace-step"><div class="label">处理步骤</div><div class="trace-json">${JSON.stringify(rec.processing_steps, null, 2)}</div></div>
+                <div class="trace-step"><div class="label">解析中间结果</div><div class="trace-json">${JSON.stringify(rec.parsing_intermediates, null, 2)}</div></div>
+                <div class="trace-step"><div class="label">最终结果</div><div class="trace-json">${JSON.stringify(rec.final_result, null, 2)}</div></div>
+                <div class="trace-step"><div class="label">创建时间</div><div class="detail">${rec.created_at}</div></div>
+            </div>`;
+        document.getElementById('traceDetail').innerHTML = html;
+        document.getElementById('traceModal').classList.add('active');
+    } catch(e) { toast('加载追溯记录失败: '+e.message,'error'); }
+}
+
+// History
+function toggleSelectAllHistory() {
+    const allCb = document.getElementById('histSelectAll');
+    const cbs = document.querySelectorAll('.hist-select');
+    cbs.forEach(cb => cb.checked = allCb.checked);
+}
+
+function getSelectedHistoryTaskIds() {
+    const cbs = document.querySelectorAll('.hist-select:checked');
+    return Array.from(cbs).map(cb => cb.getAttribute('data-task-id'));
+}
+
+async function loadHistory() {
+    const risk = document.getElementById('histRisk').value;
+    const hale = document.getElementById('histHale').value;
+    const minConf = document.getElementById('histMinConf').value;
+    const maxConf = document.getElementById('histMaxConf').value;
+    const featureType = document.getElementById('histFeatureType').value;
+    const start = document.getElementById('histStart').value;
+    const end = document.getElementById('histEnd').value;
+    const params = new URLSearchParams({page: histPg, limit: 20});
+    if (risk) params.set('risk_level', risk);
+    if (hale) params.set('hale_classification', hale);
+    if (minConf) params.set('min_confidence', minConf);
+    if (maxConf) params.set('max_confidence', maxConf);
+    if (featureType) params.set('feature_type', featureType);
+    if (start) params.set('start_date', start);
+    if (end) params.set('end_date', end);
+    try {
+        const r = await fetch(`${API}/reports?${params}`);
+        const d = await r.json();
+        const items = d.data.items || [];
+        document.getElementById('histSelectAll').checked = false;
+        document.getElementById('histTable').innerHTML = items.map(rep =>
+            `<tr><td><input type="checkbox" class="hist-select" data-task-id="${rep.task_id}" onclick="updateSelectAllState()"></td>
+            <td>${new Date(rep.generated_at).toLocaleString()}</td><td class="monospace">${rep.image_id?.slice(-12)||'-'}</td>
+            <td>${rep.hale_classification||'-'}</td><td>${rep.complexity_score?.toFixed(1)||'-'}</td>
+            <td>${((rep.classification_confidence||0)*100).toFixed(1)}%</td>
+            <td><span class="risk-badge risk-${rep.risk_level||'low'}">${({low:'低',moderate:'中',high:'高'})[rep.risk_level]||rep.risk_level}</span></td>
+            <td>${rep.feature_count||0}</td><td>${(rep.processing_time_seconds||0).toFixed(1)}</td>
+            <td><button class="btn btn-primary btn-sm" onclick="viewReport('${rep.id}','${rep.task_id}')">查看</button>
+            <button class="btn btn-secondary btn-sm" onclick="openReviewForReport('${rep.id}','${rep.task_id}')">复核</button></td></tr>`
+        ).join('') || '<tr><td colspan="9" class="empty">暂无历史记录</td></tr>';
+        document.getElementById('histPageInfo').textContent = `第 ${d.data.page} 页 / 共 ${Math.ceil(d.data.total/d.data.limit)} 页`;
+        document.getElementById('histPrev').disabled = d.data.page <= 1;
+        document.getElementById('histNext').disabled = d.data.page * d.data.limit >= d.data.total;
+    } catch { toast('加载历史记录失败','error'); }
+}
+
+function histPage(d) { histPg += d; loadHistory(); }
+
+function exportHistoryCSV() {
+    const risk = document.getElementById('histRisk').value;
+    const hale = document.getElementById('histHale').value;
+    const start = document.getElementById('histStart').value;
+    const end = document.getElementById('histEnd').value;
+    const params = new URLSearchParams();
+    if (risk) params.set('risk_level', risk);
+    if (hale) params.set('hale_classification', hale);
+    if (start) params.set('start_date', start);
+    if (end) params.set('end_date', end);
+    window.open(`${API}/reports/export/csv?${params}`, '_blank');
+    toast('CSV导出中...','success');
+}
+
+function exportHistoryJSON() {
+    const risk = document.getElementById('histRisk').value;
+    const hale = document.getElementById('histHale').value;
+    const start = document.getElementById('histStart').value;
+    const end = document.getElementById('histEnd').value;
+    const params = new URLSearchParams();
+    if (risk) params.set('risk_level', risk);
+    if (hale) params.set('hale_classification', hale);
+    if (start) params.set('start_date', start);
+    if (end) params.set('end_date', end);
+    window.open(`${API}/reports/export/json?${params}`, '_blank');
+    toast('JSON导出中...','success');
+}
+
+async function viewReport(reportId, taskId) {
+    try {
+        const r = await fetch(`${API}/analyze/${taskId}`);
+        const d = await r.json();
+        if (d.success) { await loadResult(d.data); switchTab('analysis'); }
+        else toast('报告数据不完整','warning');
+    } catch(e) { toast('加载失败: '+e.message,'error'); }
+}
+
+// Statistics
+async function loadStatistics() {
+    try {
+        const r = await fetch(`${API}/statistics/summary`);
+        const d = await r.json(); const s = d.data || {};
+        if (s.total_analyses === 0) { document.getElementById('statsMetrics').innerHTML = '<div class="empty"><div class="empty-icon">📊</div><p>暂无数据</p></div>'; return; }
+        const o = s.overview||{}, c = s.complexity_metrics||{}, risk = s.risk_distribution||{}, p = s.performance_metrics||{};
+        document.getElementById('statsMetrics').innerHTML = [
+            ['总分析次数', o.total_analyses||0],['检测特征总数', o.total_features_detected||0],
+            ['平均复杂度', `${c.mean||0} ± ${c.std_deviation||0}`],['复杂度范围', `${c.min||0} - ${c.max||0}`],
+            ['高风险占比', `${((risk.high_risk_ratio||0)*100).toFixed(1)}%`],
+            ['平均置信度', `${((p.average_confidence||0)*100).toFixed(1)}%`],
+            ['平均处理时间', `${(p.average_processing_time_s||0).toFixed(2)}s`],
+            ['风险分布', `L:${risk.low||0} M:${risk.moderate||0} H:${risk.high||0}`],
+        ].map(([l,v]) => `<div class="metric"><div class="metric-value">${v}</div><div class="metric-label">${l}</div></div>`).join('');
+
+        const r2 = await fetch(`${API}/statistics/charts?chart_type=all`);
+        const d2 = await r2.json();
+        const charts = d2.data?.charts || {};
+        let html = '';
+        if (charts.trend) html += `<div class="chart-box"><h3 style="color:#ffd700;margin-bottom:0.4rem;font-size:0.9rem;">特征检测趋势</h3><img src="${charts.trend}" alt="Trend"></div>`;
+        if (charts.distribution) html += `<div class="chart-box"><h3 style="color:#ffd700;margin-bottom:0.4rem;font-size:0.9rem;">特征类型分布</h3><img src="${charts.distribution}" alt="Distribution"></div>`;
+        if (charts.risk) html += `<div class="chart-box"><h3 style="color:#ffd700;margin-bottom:0.4rem;font-size:0.9rem;">风险等级分布</h3><img src="${charts.risk}" alt="Risk"></div>`;
+        document.getElementById('chartsContainer').innerHTML = html || '<div class="empty">暂无图表数据</div>';
+    } catch(e) { toast('加载统计失败: '+e.message,'error'); }
+}
+
+// Reviews
+async function loadReviews() {
+    const status = document.getElementById('revFilter').value;
+    const params = new URLSearchParams({page:1, limit:50});
+    if (status) params.set('status', status);
+    try {
+        const r = await fetch(`${API}/reviews?${params}`);
+        const d = await r.json();
+        const items = d.data.items || [];
+        document.getElementById('revTable').innerHTML = items.map(rv =>
+            `<tr><td class="monospace">${rv.id?.slice(-10)||'-'}</td><td class="monospace">${rv.report_id?.slice(-10)||'-'}</td>
+            <td>${rv.reviewer||'-'}</td><td><span class="review-status rs-${rv.verification_status}">${({pending:'待确认',confirmed:'已确认',corrected:'已修正',disputed:'有争议'})[rv.verification_status]||rv.verification_status}</span></td>
+            <td>${(rv.correction_fields||[]).join(', ')||'-'}</td><td>${(rv.comments||'-').slice(0,40)}</td><td>${new Date(rv.created_at).toLocaleString()}</td>
+            <td><button class="btn btn-secondary btn-sm" onclick="viewReviewDetail('${rv.id}')">详情</button></td></tr>`
+        ).join('') || '<tr><td colspan="8" class="empty">暂无复核记录</td></tr>';
+        document.getElementById('revPageInfo').textContent = `共 ${d.data.total} 条记录`;
+    } catch { toast('加载复核记录失败','error'); }
+}
+
+async function submitReview() {
+    const reportId = document.getElementById('revReportId').value;
+    const taskId = document.getElementById('revTaskId').value;
+    if (!reportId || !taskId) { toast('请填写报告ID和任务ID','warning'); return; }
+    const fields = document.getElementById('revFields').value ? document.getElementById('revFields').value.split(',').map(s=>s.trim()) : [];
+    const body = {report_id:reportId, task_id:taskId, reviewer:document.getElementById('revReviewer').value||'operator',
+        verification_status:document.getElementById('revStatus').value, comments:document.getElementById('revComments').value, correction_fields:fields};
+    if (pendingParamChanges.length > 0) {
+        // Convert to Dict format as backend expects (not array)
+        body.modified_params = Object.fromEntries(pendingParamChanges.map(p => [p.paramName, p.newValue]));
+        body.param_change_reason = pendingParamChanges.map(p => `${p.paramName}: ${p.reason}`).join('; ');
+    }
+    try {
+        const r = await fetch(`${API}/reviews`, {method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify(body)});
+        const d = await r.json();
+        if (d.success) { toast('复核记录已保存','success'); loadReviews(); document.getElementById('revComments').value=''; document.getElementById('revFields').value=''; pendingParamChanges=[]; renderParamChanges(); }
+        else toast(d.error?.message||'提交失败','error');
+    } catch(e) { toast('提交失败: '+e.message,'error'); }
+}
+
+// Traceability
+async function loadTraceability() {
+    const start = document.getElementById('traceStart').value;
+    const end = document.getElementById('traceEnd').value;
+    const params = new URLSearchParams({page:1, limit:50});
+    if (start) params.set('start', start);
+    if (end) params.set('end', end + 'T23:59:59');
+    try {
+        const r = await fetch(`${API}/traceability?${params}`);
+        const d = await r.json();
+        const items = d.data.items || [];
+        document.getElementById('traceTable').innerHTML = items.map(t =>
+            `<tr><td class="monospace">${t.task_id?.slice(-14)||'-'}</td><td class="monospace">${t.image_id?.slice(-12)||'-'}</td>
+            <td>${t.hale_classification||'-'}</td><td>${t.feature_count||0}</td><td>${new Date(t.created_at).toLocaleString()}</td>
+            <td><button class="btn btn-secondary btn-sm" onclick="viewTrace('${t.task_id}')">详情</button></td></tr>`
+        ).join('') || '<tr><td colspan="6" class="empty">暂无追溯记录</td></tr>';
+    } catch { toast('加载追溯记录失败','error'); }
+}
+
+async function viewTrace(taskId) {
+    try {
+        const r = await fetch(`${API}/traceability/${taskId}`);
+        const d = await r.json();
+        if (!d.success) throw new Error('Not found');
+        const rec = d.data;
+        let html = `<div class="trace-steps">
+            <div class="trace-step"><div class="label">任务/图像</div><div class="detail monospace">${rec.task_id} / ${rec.image_id}</div></div>
+            <div class="trace-step"><div class="label">图像哈希</div><div class="detail monospace">${rec.image_hash}</div></div>
+            <div class="trace-step"><div class="label">输入元数据</div><div class="trace-json">${JSON.stringify(rec.input_metadata, null, 2)}</div></div>
+            <div class="trace-step"><div class="label">图像预处理特征</div><div class="trace-json">${JSON.stringify(rec.image_features, null, 2)}</div></div>
+            <div class="trace-step"><div class="label">处理步骤</div><div class="trace-json">${JSON.stringify(rec.processing_steps, null, 2)}</div></div>
+            <div class="trace-step"><div class="label">最终结果</div><div class="trace-json">${JSON.stringify(rec.final_result, null, 2)}</div></div>
+        </div>`;
+        document.getElementById('traceDetail').innerHTML = html;
+        document.getElementById('traceModal').classList.add('active');
+    } catch(e) { toast('加载失败: '+e.message,'error'); }
+}
+
+// Feature Flagging
+async function flagFeature(featureType, featureIndex, flag, evt) {
+    if (!curTask) { toast('请先完成分析','warning'); return; }
+    try {
+        // IMMEDIATE visual feedback - update the button state before API call
+        const clickedBtn = evt.target;
+        const parentLi = clickedBtn.closest('li');
+        if (parentLi) {
+            // Remove flag-active from all flag buttons in this row
+            parentLi.querySelectorAll('.flag-btn').forEach(btn => btn.classList.remove('flag-active'));
+            // Add flag-active to the clicked button
+            clickedBtn.classList.add('flag-active');
+        }
+        
+        const r = await fetch(`${API}/analyze/${curTask}/features/${featureType}/${featureIndex}/flag`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ flag, comment: '' }),
+        });
+        const d = await r.json();
+        if (d.success) {
+            toast(d.message, 'success');
+            loadResult({ task_id: curTask });
+        } else {
+            toast(d.error?.message || '标记失败', 'error');
+            // Revert visual feedback on error
+            if (parentLi) {
+                parentLi.querySelectorAll('.flag-btn').forEach(btn => btn.classList.remove('flag-active'));
+            }
+        }
+    } catch(e) { 
+        toast('标记失败: ' + e.message, 'error'); 
+        // Revert visual feedback on error
+        if (typeof evt !== 'undefined' && evt && evt.target) {
+            const clickedBtn = evt.target;
+            const parentLi = clickedBtn.closest('li');
+            if (parentLi) {
+                parentLi.querySelectorAll('.flag-btn').forEach(btn => btn.classList.remove('flag-active'));
+            }
+        }
+    }
+}
+
+// Toggle individual feature checkbox (show/hide on canvas)
+async function toggleFeatureChecked(featureType, featureIndex, checked) {
+    if (!curTask) return;
+    try {
+        const r = await fetch(`${API}/analyze/${curTask}/detection-report/features/${featureType}/${featureIndex}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ checked }),
+        });
+        const d = await r.json();
+        if (!d.success) {
+            toast('更新状态失败: ' + (d.error?.message || ''), 'error');
+        }
+    } catch(e) { /* silent */ }
+    
+    // Update local features list and redraw overlay
+    if (window._currentFeatures) {
+        const feat = window._currentFeatures.find(f => f.index === featureIndex && (f.type || f.feature_type) === featureType);
+        if (feat) {
+            feat.checked = checked;
+        }
+    }
+    redrawOverlays();
+}
+
+// Archive functionality
+async function archiveCurrentAnalysis() {
+    if (!curTask) { toast('请先完成分析','warning'); return; }
+    try {
+        toast('正在归档...', 'info');
+        
+        // Capture screenshot of the analysis panel
+        const panel = document.getElementById('panel-analysis');
+        let screenshotData = null;
+        try {
+            if (window.html2canvas) {
+                const canvas = await html2canvas(panel, {
+                    backgroundColor: '#0f0f23',
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                });
+                screenshotData = canvas.toDataURL('image/png');
+            }
+        } catch(e) {
+            console.warn('Screenshot capture failed:', e);
+        }
+        
+        const r = await fetch(`${API}/archive`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                task_id: curTask,
+                screenshot_data: screenshotData,
+                notes: '',
+            }),
+        });
+        const d = await r.json();
+        if (d.success) {
+            toast(`归档已保存: ${d.data.archive_id}`, 'success');
+        } else {
+            toast(d.error?.message || '归档失败', 'error');
+        }
+    } catch(e) { toast('归档失败: ' + e.message, 'error'); }
+}
+
+// Token Usage
+async function loadTokens() {
+    try {
+        const r = await fetch(`${API}/token-usage/summary`);
+        const d = await r.json(); const s = d.data || {};
+        if (!s.total_requests) { document.getElementById('tokenSummary').innerHTML = '<div class="empty">暂无Token使用记录</div>'; return; }
+        document.getElementById('tokenSummary').innerHTML = [
+            ['总请求数', s.total_requests],['输入Token', s.total_input_tokens?.toLocaleString()||0],
+            ['输出Token', s.total_output_tokens?.toLocaleString()||0],['总Token', s.total_tokens?.toLocaleString()||0],
+            ['费用估算', `¥${s.total_cost_estimate?.toFixed(4)||'0'}`],['平均/请求', s.avg_tokens_per_request?.toLocaleString()||0],
+        ].map(([l,v]) => `<div class="token-card"><div class="val">${v}</div><div class="lbl">${l}</div></div>`).join('');
+
+        // Load daily summary for tokenReport
+        try {
+            const rs = await fetch(`${API}/token-usage/report/daily`);
+            const ds = await rs.json();
+            if (ds.success && ds.data) renderTokenReport(ds.data);
+        } catch {}
+
+        const r2 = await fetch(`${API}/token-usage/records`);
+        const d2 = await r2.json();
+        const items = d2.data.items || [];
+        document.getElementById('tokenTable').innerHTML = items.map(t =>
+            `<tr><td>${new Date(t.timestamp).toLocaleString()}</td><td class="monospace">${t.task_id?.slice(-14)||'-'}</td>
+            <td>${t.model||'-'}</td><td>${t.input_tokens?.toLocaleString()||0}</td><td>${t.output_tokens?.toLocaleString()||0}</td>
+            <td>${t.total_tokens?.toLocaleString()||0}</td><td>¥${t.cost_estimate?.toFixed(4)||'0'}</td></tr>`
+        ).join('') || '<tr><td colspan="7" class="empty">暂无记录</td></tr>';
+    } catch { toast('加载Token记录失败','error'); }
+}
+
+async function loadTokenReport() {
+    const period = document.getElementById('tokenPeriod').value;
+    try {
+        const r = await fetch(`${API}/token-usage/report/${period}`);
+        const d = await r.json();
+        if (d.success && d.data) {
+            renderTokenReport(d.data);
+            toast('报告已生成','success');
+        } else {
+            toast(d.error?.message||'生成报告失败','error');
+        }
+    } catch(e) { toast('生成报告失败: '+e.message,'error'); }
+}
+
+function renderTokenReport(data) {
+    const summary = data.summary || data;
+    const daily = data.daily_breakdown || data.daily || [];
+
+    let html = '';
+
+    // Summary metrics
+    if (summary.total_requests !== undefined) {
+        html += '<div class="metrics-grid" style="margin-bottom:1rem;">';
+        const metrics = [
+            ['总请求数', summary.total_requests],
+            ['总Token', summary.total_tokens?.toLocaleString()||0],
+            ['总费用', `¥${summary.total_cost?.toFixed(4) || summary.total_cost_estimate?.toFixed(4) || '0'}`],
+            ['日均请求', summary.daily_average_requests?.toFixed(1) || summary.avg_requests_per_day?.toFixed(1) || '-'],
+            ['预估月费用', `¥${summary.projected_monthly_cost?.toFixed(2) || '-'}`],
+            ['峰值日', summary.peak_day || '-'],
+        ];
+        html += metrics.map(([l,v]) => `<div class="metric"><div class="metric-value">${v}</div><div class="metric-label">${l}</div></div>`).join('');
+        html += '</div>';
+    }
+
+    // Daily breakdown table
+    if (daily.length > 0) {
+        html += '<h3 style="color:#ffd700;font-size:0.95rem;margin:1rem 0 0.5rem;">每日明细</h3>';
+        html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>请求数</th><th>Token数</th><th>费用(RMB)</th></tr></thead><tbody>';
+        html += daily.map(d =>
+            `<tr><td>${d.date || d.day || '-'}</td><td>${d.requests ?? d.request_count ?? '-'}</td><td>${(d.tokens ?? d.total_tokens ?? 0).toLocaleString()}</td><td>¥${(d.cost ?? d.cost_estimate ?? 0).toFixed(4)}</td></tr>`
+        ).join('');
+        html += '</tbody></table></div>';
+    }
+
+    document.getElementById('tokenReport').innerHTML = html || '<div class="empty">暂无报告数据</div>';
+}
+
+// Admin
+async function loadAdmin() {
+    try {
+        const r = await fetch(`${API}/admin/dashboard`);
+        const d = await r.json(); const data = d.data || {};
+        if (data.message) { document.getElementById('adminMetrics').innerHTML = `<div class="empty">${data.message}</div>`; return; }
+        const sm = data.system_metrics||{}, am = data.accuracy_metrics||{}, rm = data.risk_distribution||{}, cm = data.complexity_metrics||{}, tu = data.token_usage_summary||{};
+        document.getElementById('adminMetrics').innerHTML = [
+            ['总分析次数', sm.total_analyses||0],['总图像数', sm.total_images||0],['总复核数', sm.total_reviews||0],
+            ['复核覆盖率', `${sm.review_coverage_rate||0}%`],['确认率', `${am.confirmed_rate||0}%`],
+            ['修正率', `${am.corrected_rate||0}%`],['争议率', `${am.disputed_rate||0}%`],
+            ['平均复杂度', cm.mean||0],['高风险占比', `${((rm.high||0)/Math.max(sm.total_analyses||1,1)*100).toFixed(1)}%`],
+            ['总Token', tu.total_tokens?.toLocaleString()||0],['费用估算', `¥${tu.total_cost_estimate?.toFixed(4)||'0'}`],
+        ].map(([l,v]) => `<div class="admin-card"><h4>${l}</h4><div class="val">${v}</div></div>`).join('');
+
+        // Load config
+        const r2 = await fetch(`${API}/admin/config`);
+        const d2 = await r2.json();
+        const cfg = d2.data || {};
+        document.getElementById('cfgMaxTokens').value = cfg.max_tokens_per_request || '';
+        document.getElementById('cfgConfThreshold').value = cfg.confidence_threshold || '';
+        document.getElementById('cfgFallback').value = cfg.enable_heuristic_fallback === true ? 'true' : cfg.enable_heuristic_fallback === false ? 'false' : '';
+    } catch { toast('加载管理面板失败','error'); }
+}
+
+async function saveConfig() {
+    const body = {};
+    const mt = document.getElementById('cfgMaxTokens').value;
+    if (mt) body.max_tokens_per_request = parseInt(mt);
+    const ct = document.getElementById('cfgConfThreshold').value;
+    if (ct) body.confidence_threshold = parseFloat(ct);
+    const fb = document.getElementById('cfgFallback').value;
+    if (fb) body.enable_heuristic_fallback = fb === 'true';
+    try {
+        const r = await fetch(`${API}/admin/config`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        const d = await r.json();
+        if (d.success) toast('配置已更新','success');
+        else toast(d.error?.message||'更新失败','error');
+    } catch(e) { toast('更新失败: '+e.message,'error'); }
+}
+
+async function loadAdminReport() {
+    try {
+        const r = await fetch(`${API}/admin/performance-report?days=30`);
+        const d = await r.json();
+        if (!d.success) throw new Error(d.error?.message || '获取报告失败');
+        const data = d.data || {};
+        renderAdminReport(data);
+        toast('评估报告已生成','success');
+    } catch(e) { toast('生成评估报告失败: '+e.message,'error'); }
+}
+
+function renderAdminReport(data) {
+    let html = '<h3 style="color:#ffd700;font-size:0.95rem;margin-bottom:0.8rem;">系统评估报告</h3>';
+
+    // System performance metrics
+    const perf = data.system_performance || data.performance || {};
+    if (Object.keys(perf).length > 0) {
+        html += '<h4 style="color:rgba(255,255,255,0.7);font-size:0.85rem;margin:0.8rem 0 0.4rem;">系统性能</h4>';
+        html += '<div class="metrics-grid">';
+        const perfMetrics = [
+            ['总分析次数', perf.total_analyses ?? perf.total_requests ?? '-'],
+            ['平均处理时间', perf.avg_processing_time ? `${perf.avg_processing_time.toFixed(2)}s` : (perf.average_processing_time_s ? `${perf.average_processing_time_s.toFixed(2)}s` : '-')],
+            ['成功率', perf.success_rate ? `${(perf.success_rate * 100).toFixed(1)}%` : (perf.success_rate_pct ? `${perf.success_rate_pct.toFixed(1)}%` : '-')],
+            ['错误率', perf.error_rate ? `${(perf.error_rate * 100).toFixed(1)}%` : '-'],
+        ];
+        html += perfMetrics.map(([l,v]) => `<div class="metric"><div class="metric-value">${v}</div><div class="metric-label">${l}</div></div>`).join('');
+        html += '</div>';
+    }
+
+    // Accuracy metrics
+    const acc = data.accuracy_metrics || data.accuracy || {};
+    if (Object.keys(acc).length > 0) {
+        html += '<h4 style="color:rgba(255,255,255,0.7);font-size:0.85rem;margin:0.8rem 0 0.4rem;">准确率指标</h4>';
+        html += '<div class="metrics-grid">';
+        const accMetrics = [
+            ['已确认率', acc.confirmed_rate != null ? `${(acc.confirmed_rate * 100).toFixed(1)}%` : (acc.confirmed_count != null ? acc.confirmed_count : '-')],
+            ['已修正率', acc.corrected_rate != null ? `${(acc.corrected_rate * 100).toFixed(1)}%` : (acc.corrected_count != null ? acc.corrected_count : '-')],
+            ['争议率', acc.disputed_rate != null ? `${(acc.disputed_rate * 100).toFixed(1)}%` : (acc.disputed_count != null ? acc.disputed_count : '-')],
+            ['总复核数', acc.total_reviews ?? '-'],
+        ];
+        html += accMetrics.map(([l,v]) => `<div class="metric"><div class="metric-value">${v}</div><div class="metric-label">${l}</div></div>`).join('');
+        html += '</div>';
+    }
+
+    // Risk distribution
+    const risk = data.risk_distribution || data.risk || {};
+    if (Object.keys(risk).length > 0) {
+        html += '<h4 style="color:rgba(255,255,255,0.7);font-size:0.85rem;margin:0.8rem 0 0.4rem;">风险分布</h4>';
+        html += '<div class="metrics-grid">';
+        const riskMetrics = [
+            ['低风险', risk.low ?? risk.low_count ?? '-'],
+            ['中等风险', risk.moderate ?? risk.moderate_count ?? '-'],
+            ['高风险', risk.high ?? risk.high_count ?? '-'],
+            ['高风险占比', risk.high_risk_ratio ? `${(risk.high_risk_ratio * 100).toFixed(1)}%` : '-'],
+        ];
+        html += riskMetrics.map(([l,v]) => `<div class="metric"><div class="metric-value">${v}</div><div class="metric-label">${l}</div></div>`).join('');
+        html += '</div>';
+    }
+
+    // Token usage summary
+    const tokens = data.token_usage_summary || data.token_usage || data.tokens || {};
+    if (Object.keys(tokens).length > 0) {
+        html += '<h4 style="color:rgba(255,255,255,0.7);font-size:0.85rem;margin:0.8rem 0 0.4rem;">Token 用量摘要</h4>';
+        html += '<div class="metrics-grid">';
+        const tokenMetrics = [
+            ['总Token', tokens.total_tokens ? tokens.total_tokens.toLocaleString() : '-'],
+            ['总费用', tokens.total_cost_estimate != null ? `¥${tokens.total_cost_estimate.toFixed(4)}` : (tokens.total_cost != null ? `¥${tokens.total_cost.toFixed(4)}` : '-')],
+            ['平均Token/请求', tokens.avg_tokens_per_request ? tokens.avg_tokens_per_request.toLocaleString() : '-'],
+            ['总请求数', tokens.total_requests ?? '-'],
+        ];
+        html += tokenMetrics.map(([l,v]) => `<div class="metric"><div class="metric-value">${v}</div><div class="metric-label">${l}</div></div>`).join('');
+        html += '</div>';
+    }
+
+    // Report generation time
+    if (data.generated_at) {
+        html += `<p style="color:rgba(255,255,255,0.4);font-size:0.75rem;margin-top:1rem;">报告生成时间: ${new Date(data.generated_at).toLocaleString()}</p>`;
+    }
+
+    document.getElementById('adminReport').innerHTML = html || '<div class="empty">暂无评估报告数据</div>';
+}
+
+// Init
+checkConn();
+
+// ===== Sunspot Detection =====
+let ssLastResult = null;
+
+async function loadSunspotImages() {
+    try {
+        const r = await fetch(`${API}/images?limit=50`);
+        const d = await r.json();
+        const sel = document.getElementById('ssImageSelect');
+        const items = d.data.items || [];
+        sel.innerHTML = '<option value="">-- 选择图像 --</option>' +
+            items.map(img => `<option value="${img.id}">${img.filename||img.id} (${img.status})</option>`).join('');
+    } catch { /* ignore */ }
+}
+
+async function runSunspotDetect() {
+    const imgId = document.getElementById('ssImageSelect').value;
+    if (!imgId) { toast('请先选择图像','warning'); return; }
+
+    const prog = document.getElementById('ssProgress');
+    const fill = document.getElementById('ssProgressFill');
+    const txt = document.getElementById('ssProgressText');
+    prog.style.display = 'block'; fill.style.width = '20%'; txt.textContent = '正在检测...';
+    document.getElementById('ssResult').style.display = 'none';
+
+    try {
+        const r = await fetch(`${API}/sunspot/detect/${imgId}`, {method:'POST'});
+        const d = await r.json();
+        fill.style.width = '100%'; txt.textContent = '检测完成';
+
+        if (d.success) {
+            ssLastResult = d.data;
+            displaySunspotResult(d.data);
+            toast(d.message||'检测完成','success');
+            loadSunspotHistory();
+        } else {
+            txt.textContent = `失败: ${d.error?.message||'未知'}`;
+            toast(d.error?.message||'检测失败','error');
+        }
+        setTimeout(() => { prog.style.display = 'none'; }, 2000);
+    } catch(e) {
+        fill.style.width = '0'; txt.textContent = `错误: ${e.message}`;
+        toast('检测失败: '+e.message,'error');
+    }
+}
+
+function displaySunspotResult(data) {
+    document.getElementById('ssResult').style.display = 'block';
+
+    const ts = new Date(data.detection_timestamp || Date.now()).toLocaleString();
+    document.getElementById('ssResultMeta').textContent =
+        `图像: ${data.image_path?.split('\\').pop()||''} | 时间: ${ts} | 耗时: ${data.processing_time_ms}ms`;
+
+    // Metrics
+    const r = data.spots_by_region || {};
+    document.getElementById('ssMetrics').innerHTML = [
+        ['总黑子数', data.total_spots||0],
+        ['中心区域', r.center||0],
+        ['中纬度区域', r.mid_latitude||0],
+        ['边缘区域', r.limb||0],
+        ['日面半径', `${(data.solar_disk?.radius_px||0).toFixed(0)} px`],
+        ['日面中心', `(${(data.solar_disk?.center?.x||0).toFixed(0)}, ${(data.solar_disk?.center?.y||0).toFixed(0)})`],
+        ['检测方法', data.solar_disk?.method||'-'],
+        ['置信度', `${((data.solar_disk?.detection_confidence||0)*100).toFixed(1)}%`],
+    ].map(([l,v]) => `<div class="metric"><div class="metric-value">${v}</div><div class="metric-label">${l}</div></div>`).join('');
+
+    // Annotated image
+    const imgEl = document.getElementById('ssAnnotatedImage');
+    if (data.annotated_image_base64) {
+        imgEl.src = data.annotated_image_base64;
+        imgEl.style.display = 'block';
+    } else if (data.annotated_image_url) {
+        imgEl.src = data.annotated_image_url;
+        imgEl.style.display = 'block';
+    } else {
+        imgEl.style.display = 'none';
+    }
+
+    // Spot table
+    const spots = data.sunspots || [];
+    document.getElementById('ssSpotTable').innerHTML = spots.map(s => {
+        const pos = s.position_solar_normalized || {};
+        const regionLabels = {center:'中心区', mid_latitude:'中纬度', limb:'边缘'};
+        return `<tr>
+            <td>${s.spot_id}</td>
+            <td>${s.position_px?.x?.toFixed(1)||'-'}</td>
+            <td>${s.position_px?.y?.toFixed(1)||'-'}</td>
+            <td>${pos.x?.toFixed(4)||'-'}</td>
+            <td>${pos.y?.toFixed(4)||'-'}</td>
+            <td>${s.area_px?.toFixed(0)||'-'}</td>
+            <td>${s.equivalent_diameter_px?.toFixed(1)||'-'}</td>
+            <td>${((s.confidence||0)*100).toFixed(1)}%</td>
+            <td><span class="ft-badge ft-${s.region==='center'?'sunspot':s.region==='mid_latitude'?'bright_region':'flare'}">${regionLabels[s.region]||s.region}</span></td>
+            <td>${s.distance_from_center?.toFixed(3)||'-'}</td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="10" class="empty">未检测到黑子</td></tr>';
+
+    // Disk info
+    const disk = data.solar_disk || {};
+    document.getElementById('ssDiskInfo').innerHTML =
+        `中心坐标: (${disk.center?.x?.toFixed(1)||'-'}, ${disk.center?.y?.toFixed(1)||'-'}) px | ` +
+        `归一化中心: (${disk.center_normalized?.x?.toFixed(4)||'-'}, ${disk.center_normalized?.y?.toFixed(4)||'-'}) | ` +
+        `半径: ${disk.radius_px?.toFixed(0)||'-'} px | ` +
+        `归一化半径: ${disk.radius_normalized?.toFixed(4)||'-'} | ` +
+        `图像尺寸: ${disk.image_dimensions?.width||'-'}×${disk.image_dimensions?.height||'-'} px | ` +
+        `检测方法: ${disk.method||'-'} | ` +
+        `置信度: ${((disk.detection_confidence||0)*100).toFixed(1)}%`;
+}
+
+async function loadSunspotHistory() {
+    try {
+        const r = await fetch(`${API}/sunspot/history?limit=20`);
+        const d = await r.json();
+        const items = d.data.items || [];
+        document.getElementById('ssHistTable').innerHTML = items.map(item =>
+            `<tr><td>${new Date(item.timestamp).toLocaleString()}</td>
+            <td>${item.filename||item.image_id?.slice(-12)||'-'}</td>
+            <td style="font-weight:bold;color:#ffd700;">${item.total_spots||0}</td>
+            <td>${item.spots_by_region?.center||0}</td>
+            <td>${item.spots_by_region?.mid_latitude||0}</td>
+            <td>${item.spots_by_region?.limb||0}</td>
+            <td>${(item.processing_time_ms)?.toFixed(0)||'-'}</td>
+            <td><button class="btn btn-secondary btn-sm" onclick="viewSunspotResult('${item.id}')">查看</button></td></tr>`
+        ).join('') || '<tr><td colspan="8" class="empty">暂无检测历史</td></tr>';
+    } catch { toast('加载历史失败','error'); }
+}
+
+async function viewSunspotResult(resultId) {
+    try {
+        const r = await fetch(`${API}/sunspot/history?limit=100`);
+        const d = await r.json();
+        const items = d.data.items || [];
+        const item = items.find(i => i.id === resultId);
+        if (item) {
+            ssLastResult = item;
+            displaySunspotResult(item);
+        } else {
+            toast('未找到结果','warning');
+        }
+    } catch { toast('加载失败','error'); }
+}
+
+async function loadSunspotStats() {
+    try {
+        const r = await fetch(`${API}/sunspot/statistics`);
+        const d = await r.json();
+        const s = d.data || {};
+        document.getElementById('ssStatsGrid').innerHTML = [
+            ['总检测次数', s.total_detections||0],
+            ['总黑子数', s.total_spots||0],
+            ['平均每图', s.average_spots_per_image?.toFixed(2)||0],
+            ['平均置信度', `${((s.average_confidence||0)*100).toFixed(1)}%`],
+            ['中心区总计', s.spots_by_region?.center||0],
+            ['中纬度总计', s.spots_by_region?.mid_latitude||0],
+            ['边缘区总计', s.spots_by_region?.limb||0],
+        ].map(([l,v]) => `<div class="metric"><div class="metric-value">${v}</div><div class="metric-label">${l}</div></div>`).join('');
+    } catch { /* ignore */ }
+}
+
+function exportSunspotCSV() {
+    if (!ssLastResult) { toast('无数据可导出','warning'); return; }
+    const csv = ssLastResult.csv_summary || '';
+    if (!csv) { toast('CSV数据不可用','warning'); return; }
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `sunspot_detection_${new Date().toISOString().slice(0,19).replace(/[:-]/g,'')}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('CSV已导出','success');
+}
+
+// Skip unsupported tabs for sunspot
+const origSwitchTab = switchTab;
+switchTab = function(p) {
+    origSwitchTab(p);
+    if (p === 'sunspot') { loadSunspotImages(); loadSunspotHistory(); loadSunspotStats(); }
+    if (p === 'cvupload') { loadCVFiles(); }
+};
+
+// ===== CV File Upload =====
+let selCVFile = null;
+
+// CV upload area events
+const cvUploadArea = document.getElementById('cvUploadArea');
+const cvFileInput = document.getElementById('cvFileInput');
+
+if (cvUploadArea && cvFileInput) {
+    cvUploadArea.addEventListener('dragover', e => { e.preventDefault(); cvUploadArea.classList.add('dragover'); });
+    cvUploadArea.addEventListener('dragleave', () => cvUploadArea.classList.remove('dragover'));
+    cvUploadArea.addEventListener('drop', e => { e.preventDefault(); cvUploadArea.classList.remove('dragover'); if (e.dataTransfer.files.length) handleCVFile(e.dataTransfer.files[0]); });
+    cvFileInput.addEventListener('change', e => { if (e.target.files.length) handleCVFile(e.target.files[0]); });
+}
+
+function handleCVFile(f) {
+    selCVFile = f;
+    document.getElementById('cvFileName').textContent = f.name;
+    document.getElementById('cvFileSize').textContent = `大小: ${(f.size/1024).toFixed(1)} KB | 类型: ${f.type||'未知'}`;
+    document.getElementById('cvPreviewContainer').style.display = 'flex';
+
+    // Preview text-based files
+    const ext = f.name.split('.').pop().toLowerCase();
+    const textExts = ['json', 'txt', 'csv'];
+    const previewEl = document.getElementById('cvPreviewContent');
+
+    if (textExts.includes(ext)) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            let content = e.target.result;
+            if (ext === 'json') {
+                try { content = JSON.stringify(JSON.parse(content), null, 2); } catch {}
+            }
+            previewEl.textContent = content.substring(0, 10000) + (content.length > 10000 ? '\n... (内容过长，已截断)' : '');
+            previewEl.style.display = 'block';
+        };
+        reader.readAsText(f);
+    } else {
+        previewEl.style.display = 'none';
+    }
+}
+
+function resetCVUpload() {
+    selCVFile = null;
+    cvFileInput.value = '';
+    document.getElementById('cvPreviewContainer').style.display = 'none';
+    document.getElementById('cvPreviewContent').style.display = 'none';
+}
+
+async function uploadCVFile() {
+    if (!selCVFile) { toast('请先选择文件','warning'); return; }
+
+    const fd = new FormData();
+    fd.append('file', selCVFile);
+
+    try {
+        toast('正在上传CV文件...','info');
+        const r = await fetch(`${API}/cv-files/upload`, {method:'POST', body:fd});
+        const d = await r.json();
+
+        if (d.success) {
+            toast('CV文件上传成功','success');
+            resetCVUpload();
+            loadCVFiles();
+        } else {
+            toast(d.error?.message || '上传失败','error');
+        }
+    } catch(e) {
+        toast('上传失败: '+e.message,'error');
+    }
+}
+
+async function loadCVFiles() {
+    try {
+        const fileType = document.getElementById('cvFileType')?.value || '';
+        const params = new URLSearchParams();
+        if (fileType) params.set('type', fileType);
+
+        const r = await fetch(`${API}/cv-files?${params}`);
+        const d = await r.json();
+        const items = d.data?.items || [];
+
+        const typeLabels = {json:'JSON', txt:'文本', csv:'CSV', image:'图像', pdf:'PDF', other:'其他'};
+        document.getElementById('cvFileTable').innerHTML = items.map(f =>
+            `<tr><td>${f.filename||'-'}</td><td>${typeLabels[f.file_type]||f.file_type||'-'}</td>
+            <td>${(f.file_size/1024).toFixed(1)} KB</td><td>${new Date(f.uploaded_at).toLocaleString()}</td>
+            <td><div class="btn-group">
+                <button class="btn btn-secondary btn-sm" onclick="viewCVFile('${f.id}')">查看</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteCVFile('${f.id}')">删除</button>
+            </div></td></tr>`
+        ).join('') || '<tr><td colspan="5" class="empty">暂无CV文件</td></tr>';
+    } catch { toast('加载CV文件失败','error'); }
+}
+
+async function viewCVFile(fileId) {
+    try {
+        const r = await fetch(`${API}/cv-files/${fileId}`);
+        const d = await r.json();
+        if (!d.success) throw new Error('文件不存在');
+
+        const f = d.data;
+        const previewEl = document.getElementById('cvPreviewContent');
+
+        if (f.content) {
+            let content = f.content;
+            if (f.file_type === 'json') {
+                try { content = JSON.stringify(JSON.parse(content), null, 2); } catch {}
+            }
+            previewEl.textContent = content.substring(0, 20000) + (content.length > 20000 ? '\n... (内容过长，已截断)' : '');
+            previewEl.style.display = 'block';
+        } else if (f.file_url) {
+            window.open(f.file_url, '_blank');
+        } else {
+            toast('无法查看此文件','warning');
+        }
+    } catch(e) { toast('查看失败: '+e.message,'error'); }
+}
+
+async function deleteCVFile(fileId) {
+    if (!confirm('确定删除此CV文件？')) return;
+    try {
+        const r = await fetch(`${API}/cv-files/${fileId}`, {method:'DELETE'});
+        const d = await r.json();
+        if (d.success) { toast('CV文件已删除','success'); loadCVFiles(); }
+        else toast(d.error?.message || '删除失败','error');
+    } catch(e) { toast('删除失败: '+e.message,'error'); }
+}
+
+// ===== i18n =====
+const translations = {
+    zh: {
+        // Page title
+        page_title: '太阳活动区自动分析系统 v2.1',
+        // Nav
+        nav_upload: '上传', nav_analysis: '分析结果', nav_history: '历史记录',
+        nav_statistics: '数据统计', nav_review: '人工复核', nav_traceability: '追溯记录',
+        nav_tokens: 'Token用量', nav_sunspot: '黑子检测', nav_cvfiles: 'CV文件',
+        nav_apikeys: 'API管理', nav_comparison: '批量对比', nav_admin: '管理面板', nav_api: 'API',
+        // Upload panel
+        upload_title: '上传太阳图像', upload_area_title: '拖放图像文件到此处，或点击选择',
+        upload_area_hint: '支持格式: JPG, JPEG, PNG, TIFF | 最大: 10MB',
+        upload_source: '数据来源 (如: SDO/HMI)', upload_wavelength: '波长 (如: 171A)',
+        model_selection_title: '选择AI模型',
+        model_selection_hint: '💡 视觉模型可直接分析图像，文本模型基于CV预处理报告分析',
+        btn_upload_analyze: '上传并分析', btn_upload_only: '仅上传', btn_cancel: '取消',
+        step_preprocess: '图像预处理', step_prompt: '构建分析提示词', step_ai: 'AI模型推理',
+        step_parse: '结构化解析', step_annotate: '生成标注图像', step_trace: '保存追溯记录',
+        analysis_title: '分析报告',
+        risk_low: '低风险', risk_moderate: '中等风险', risk_high: '高风险',
+        metric_hale: 'Hale分类', metric_confidence: '置信度', metric_complexity: '复杂度',
+        metric_total_features: '特征总数', metric_sunspots: '黑子数量',
+        metric_flares: '耀斑数量', metric_bright: '亮区数量', metric_avg_conf: '平均置信度',
+        annotated_image: '标注图像', btn_view_report: '查看检测报告', btn_export_csv: '导出CSV',
+        detection_detail: '检测特征详情 (可勾选修正)', no_features: '未检测到特征',
+        analysis_summary: '分析摘要与建议', btn_review: '人工复核', btn_trace: '查看追溯记录',
+        empty_analysis: '暂无分析结果',
+        // History
+        history_title: '历史记录', hist_risk: '全部风险等级', hist_hale: '全部分类',
+        hist_min_conf: '最小置信度', hist_max_conf: '最大置信度',
+        hist_feature_type: '全部特征类型', hist_start: '起始日期', hist_end: '结束日期',
+        btn_refresh: '刷新', btn_export_csv: '导出CSV', btn_export_json: '导出JSON',
+        th_time: '时间', th_image_id: '图像ID', th_hale: 'Hale分类', th_complexity: '复杂度',
+        th_confidence: '置信度', th_risk: '风险等级', th_feature_count: '特征数',
+        th_time_cost: '耗时(s)', th_actions: '操作', btn_view: '查看',
+        prev_page: '上一页', next_page: '下一页',
+        empty_history: '暂无历史记录',
+        // Statistics
+        stats_title: '统计分析', btn_refresh_data: '刷新数据', empty_stats: '暂无数据',
+        // Review
+        review_title: '人工复核', rev_report_id: '报告ID', rev_task_id: '任务ID',
+        rev_reviewer: '复核人', rev_reviewer_ph: '操作员姓名', rev_status: '状态',
+        rs_pending: '待确认', rs_confirmed: '已确认', rs_corrected: '已修正', rs_disputed: '有争议',
+        rev_fields: '修正字段', rev_fields_ph: '如: hale_classification, complexity_score',
+        rev_comments: '备注', rev_comments_ph: '复核意见或修正说明...',
+        param_mod_title: '参数修改', pm_param_name: '参数名', pm_param_name_ph: '如: hale_classification',
+        pm_new_value: '新值', pm_new_value_ph: '新值', pm_reason: '修改原因', pm_reason_ph: '修改原因',
+        btn_add_change: '添加修改', btn_submit_review: '提交复核',
+        review_records: '复核记录', rev_filter: '全部状态',
+        th_id: 'ID', th_report_id: '报告ID', th_reviewer: '复核人',
+        th_status: '状态', th_correction: '修正字段', th_comments: '备注',
+        th_time_r: '时间', th_actions_r: '操作', btn_detail: '详情',
+        empty_reviews: '暂无复核记录', total_records: '共', records: '条记录',
+        // Traceability
+        trace_title: '可追溯性记录',
+        th_task_id: '任务ID', th_image_id_t: '图像ID', th_hale_t: 'Hale分类',
+        th_feature_count_t: '特征数', th_created: '创建时间',
+        empty_trace: '暂无追溯记录',
+        // Tokens
+        token_title: 'Token 使用量统计', token_daily: '日报', token_weekly: '周报', token_monthly: '月报',
+        btn_gen_report: '生成报告', btn_refresh_records: '刷新记录',
+        th_time_tk: '时间', th_task_id_tk: '任务ID', th_model: '模型',
+        th_input_tokens: '输入Token', th_output_tokens: '输出Token', th_total_tokens: '总计',
+        th_cost: '费用估算(RMB)',
+        // Sunspot
+        sunspot_title: '太阳黑子检测', ss_select_ph: '-- 请先上传图像 --', btn_start_detect: '开始检测',
+        btn_history_detect: '历史记录', detecting: '检测中...', detect_result: '检测结果',
+        th_spot: '#', th_x_px: 'X(px)', th_y_px: 'Y(px)', th_norm_x: '归一化X', th_norm_y: '归一化Y',
+        th_area: '面积(px²)', th_diameter: '直径(px)', th_conf_ss: '置信度', th_region: '区域',
+        th_distance: '距中心', ss_disk_info: '日面边界信息', no_sunspots: '未检测到黑子',
+        ss_history: '检测历史', ss_stats: '统计数据',
+        th_time_ss: '时间', th_image_ss: '图像', th_spot_count: '黑子数',
+        th_center: '中心区', th_mid_lat: '中纬区', th_limb: '边缘区', th_time_ss_h: '耗时(ms)',
+        // CV Upload
+        cv_upload_title: 'CV文件上传与管理', cv_area_title: '拖放CV文件到此处，或点击选择',
+        cv_area_hint: '支持格式: JSON, TXT, CSV, PNG, JPG, PDF | 最大: 5MB',
+        btn_upload_cv: '上传文件', btn_cancel_cv: '取消',
+        uploaded_cv_files: '已上传的CV文件', cv_file_type: '全部类型',
+        th_filename: '文件名', th_filetype: '类型', th_filesize: '大小',
+        th_upload_time: '上传时间', th_actions_cv: '操作', empty_cv_files: '暂无CV文件',
+        // Admin
+        admin_title: '管理员控制面板', btn_gen_report_admin: '生成评估报告', btn_refresh_admin: '刷新数据',
+        system_config: '系统配置', cfg_max_tokens: '单请求最大Token数',
+        cfg_conf_threshold: '置信度阈值', cfg_fallback: '启用启发式回退',
+        cfg_fallback_default: '默认', cfg_fallback_yes: '是', cfg_fallback_no: '否',
+        btn_save_config: '保存配置',
+        // Model selection
+        vision_model_reminder_title: '⚠️ 视觉模型原始照片要求',
+        vision_req_1: '必须上传<strong>未经压缩或格式转换</strong>的原始太阳照片',
+        vision_req_2: '支持格式: <strong>JPG, JPEG, PNG, TIFF</strong>',
+        vision_req_3: '文件大小: <strong>不超过10MB</strong>',
+        vision_req_4: '请勿上传CV处理后的文件或标注图像',
+        vision_req_5: '建议使用原始观测设备直接导出的图像文件',
+        no_models_configured: '暂无已配置的AI模型',
+        models_config_hint: '请在 <a href="#" onclick="switchTab(\'apikeys\'); return false;" style="color:#ffd700;">API管理</a> 页面添加API密钥',
+        model_vision_online: '视觉模型 - 在线', model_text_online: '文本模型 - 在线',
+        model_conn_failed: '连接失败', model_vision_notest: '视觉模型 - 未测试', model_text_notest: '文本模型 - 未测试',
+        model_not_configured: '未配置API密钥', model_config_page_hint: '请在API管理页面配置',
+        btn_retest: '重新测试', btn_test: '测试连接',
+        // Connection status
+        conn_online: '在线', conn_offline: '离线', conn_deepseek_online: '🟢 DeepSeek在线',
+        conn_deepseek_offline: '🔴 DeepSeek离线', conn_deepseek_notconfig: '⚪ DeepSeek未配置',
+        // API Keys
+        apikeys_title: 'API 密钥管理', add_key_title: '添加 API 密钥', key_name: '名称',
+        key_provider: '提供商', key_value: 'API Key', key_base_url: 'Base URL', key_model: '模型名称',
+        import_keys_title: '批量导入 API 密钥', import_json: 'JSON 数组', edit_key_title: '编辑 API 密钥',
+        actions: '操作', comparison_title: '批量对比分析', comparison_details: '对比详情',
+        param_mod_title: '参数修改', param_name: '参数名', param_new_value: '新值', param_reason: '修改原因',
+        review_detail_title: '复核详情', test: '测试', edit: '编辑', delete: '删除', import: '导入',
+        confirm_delete: '确定删除此密钥？', total_compared: '对比总数', accuracy_rate: '准确率',
+        correction_rate: '修正率', dispute_rate: '争议率', avg_complexity_diff: '平均复杂度差异',
+        trend_data: '趋势数据', confirmed: '已确认', corrected: '已修正', disputed: '有争议',
+        pending_param_changes: '待提交的参数修改', remove: '移除',
+        empty_api_keys: '暂无API密钥',
+        // Comparison
+        comp_start_date: '起始日期', comp_end_date: '结束日期',
+        th_time_comp: '时间', th_image_comp: '图像', th_ai_hale: 'AI Hale', th_human_hale: '人工 Hale',
+        th_ai_complexity: 'AI 复杂度', th_human_complexity: '人工 复杂度', th_status: '状态',
+        empty_comp: '暂无对比记录',
+        // Modal
+        modal_review_title: '人工复核', modal_review_ph: '您的姓名',
+        modal_review_fields_ph: '逗号分隔，如: hale_classification,complexity_score',
+        modal_review_comments_ph: '复核意见...', btn_submit: '提交', btn_cancel_modal: '取消',
+        modal_trace_title: '追溯记录详情',
+    },
+    en: {
+        page_title: 'Solar Active Region Auto-Analysis System v2.1',
+        nav_upload: 'Upload', nav_analysis: 'Analysis', nav_history: 'History',
+        nav_statistics: 'Statistics', nav_review: 'Manual Review', nav_traceability: 'Traceability',
+        nav_tokens: 'Token Usage', nav_sunspot: 'Sunspot Detect', nav_cvfiles: 'CV Files',
+        nav_apikeys: 'API Mgmt', nav_comparison: 'Batch Compare', nav_admin: 'Admin', nav_api: 'API',
+        upload_title: 'Upload Solar Image', upload_area_title: 'Drag & drop image here, or click to select',
+        upload_area_hint: 'Supported: JPG, JPEG, PNG, TIFF | Max: 10MB',
+        upload_source: 'Data Source (e.g.: SDO/HMI)', upload_wavelength: 'Wavelength (e.g.: 171A)',
+        model_selection_title: 'Select AI Model',
+        model_selection_hint: '💡 Vision models analyze images directly, text models use CV preprocessing report',
+        btn_upload_analyze: 'Upload & Analyze', btn_upload_only: 'Upload Only', btn_cancel: 'Cancel',
+        step_preprocess: 'Image Preprocessing', step_prompt: 'Build Analysis Prompt', step_ai: 'AI Model Inference',
+        step_parse: 'Structured Parsing', step_annotate: 'Generate Annotated Image', step_trace: 'Save Traceability',
+        analysis_title: 'Analysis Report',
+        risk_low: 'Low Risk', risk_moderate: 'Moderate Risk', risk_high: 'High Risk',
+        metric_hale: 'Hale Classification', metric_confidence: 'Confidence', metric_complexity: 'Complexity',
+        metric_total_features: 'Total Features', metric_sunspots: 'Sunspot Count',
+        metric_flares: 'Flare Count', metric_bright: 'Bright Region Count', metric_avg_conf: 'Avg Confidence',
+        annotated_image: 'Annotated Image', btn_view_report: 'View Report', btn_export_csv: 'Export CSV',
+        detection_detail: 'Detection Details (Check to Correct)', no_features: 'No features detected',
+        analysis_summary: 'Analysis Summary & Recommendations', btn_review: 'Manual Review', btn_trace: 'View Traceability',
+        empty_analysis: 'No analysis results yet',
+        history_title: 'History', hist_risk: 'All Risk Levels', hist_hale: 'All Classifications',
+        hist_min_conf: 'Min Confidence', hist_max_conf: 'Max Confidence',
+        hist_feature_type: 'All Feature Types', hist_start: 'Start Date', hist_end: 'End Date',
+        btn_refresh: 'Refresh', btn_export_csv: 'Export CSV', btn_export_json: 'Export JSON',
+        th_time: 'Time', th_image_id: 'Image ID', th_hale: 'Hale', th_complexity: 'Complexity',
+        th_confidence: 'Confidence', th_risk: 'Risk', th_feature_count: 'Features',
+        th_time_cost: 'Time(s)', th_actions: 'Actions', btn_view: 'View',
+        prev_page: 'Prev', next_page: 'Next', empty_history: 'No history yet',
+        stats_title: 'Statistics', btn_refresh_data: 'Refresh Data', empty_stats: 'No data yet',
+        review_title: 'Manual Review', rev_report_id: 'Report ID', rev_task_id: 'Task ID',
+        rev_reviewer: 'Reviewer', rev_reviewer_ph: 'Operator Name', rev_status: 'Status',
+        rs_pending: 'Pending', rs_confirmed: 'Confirmed', rs_corrected: 'Corrected', rs_disputed: 'Disputed',
+        rev_fields: 'Correction Fields', rev_fields_ph: 'e.g.: hale_classification, complexity_score',
+        rev_comments: 'Comments', rev_comments_ph: 'Review opinions or correction notes...',
+        param_mod_title: 'Parameter Modification', pm_param_name: 'Parameter', pm_param_name_ph: 'e.g.: hale_classification',
+        pm_new_value: 'New Value', pm_new_value_ph: 'New value', pm_reason: 'Reason', pm_reason_ph: 'Modification reason',
+        btn_add_change: 'Add Change', btn_submit_review: 'Submit Review',
+        review_records: 'Review Records', rev_filter: 'All Statuses',
+        th_id: 'ID', th_report_id: 'Report ID', th_reviewer: 'Reviewer',
+        th_status: 'Status', th_correction: 'Correction Fields', th_comments: 'Comments',
+        th_time_r: 'Time', th_actions_r: 'Actions', btn_detail: 'Detail', empty_reviews: 'No review records',
+        total_records: 'Total', records: 'records',
+        trace_title: 'Traceability Records',
+        th_task_id: 'Task ID', th_image_id_t: 'Image ID', th_hale_t: 'Hale',
+        th_feature_count_t: 'Features', th_created: 'Created', empty_trace: 'No traceability records',
+        token_title: 'Token Usage Statistics', token_daily: 'Daily', token_weekly: 'Weekly', token_monthly: 'Monthly',
+        btn_gen_report: 'Generate Report', btn_refresh_records: 'Refresh Records',
+        th_time_tk: 'Time', th_task_id_tk: 'Task ID', th_model: 'Model',
+        th_input_tokens: 'Input Tokens', th_output_tokens: 'Output Tokens', th_total_tokens: 'Total',
+        th_cost: 'Cost Estimate(RMB)',
+        sunspot_title: 'Sunspot Detection', ss_select_ph: '-- Please upload image first --', btn_start_detect: 'Start Detection',
+        btn_history_detect: 'History', detecting: 'Detecting...', detect_result: 'Detection Result',
+        th_spot: '#', th_x_px: 'X(px)', th_y_px: 'Y(px)', th_norm_x: 'Norm X', th_norm_y: 'Norm Y',
+        th_area: 'Area(px²)', th_diameter: 'Diameter(px)', th_conf_ss: 'Confidence', th_region: 'Region',
+        th_distance: 'Dist. Center', ss_disk_info: 'Disk Boundary Info', no_sunspots: 'No sunspots detected',
+        ss_history: 'Detection History', ss_stats: 'Statistics',
+        th_time_ss: 'Time', th_image_ss: 'Image', th_spot_count: 'Sunspots',
+        th_center: 'Center', th_mid_lat: 'Mid Lat', th_limb: 'Limb', th_time_ss_h: 'Time(ms)',
+        cv_upload_title: 'CV File Upload & Management', cv_area_title: 'Drag & drop CV files here, or click to select',
+        cv_area_hint: 'Supported: JSON, TXT, CSV, PNG, JPG, PDF | Max: 5MB',
+        btn_upload_cv: 'Upload File', btn_cancel_cv: 'Cancel',
+        uploaded_cv_files: 'Uploaded CV Files', cv_file_type: 'All Types',
+        th_filename: 'Filename', th_filetype: 'Type', th_filesize: 'Size',
+        th_upload_time: 'Upload Time', th_actions_cv: 'Actions', empty_cv_files: 'No CV files',
+        admin_title: 'Admin Panel', btn_gen_report_admin: 'Generate Report', btn_refresh_admin: 'Refresh',
+        system_config: 'System Config', cfg_max_tokens: 'Max Tokens Per Request',
+        cfg_conf_threshold: 'Confidence Threshold', cfg_fallback: 'Enable Heuristic Fallback',
+        cfg_fallback_default: 'Default', cfg_fallback_yes: 'Yes', cfg_fallback_no: 'No',
+        btn_save_config: 'Save Config',
+        vision_model_reminder_title: '⚠️ Vision Model Original Photo Requirements',
+        vision_req_1: 'Must upload <strong>uncompressed, unformatted</strong> original solar photos',
+        vision_req_2: 'Supported formats: <strong>JPG, JPEG, PNG, TIFF</strong>',
+        vision_req_3: 'File size: <strong>Max 10MB</strong>',
+        vision_req_4: 'Do NOT upload CV-processed or annotated images',
+        vision_req_5: 'Recommend images exported directly from original observation equipment',
+        no_models_configured: 'No configured AI models',
+        models_config_hint: 'Please add API keys in <a href="#" onclick="switchTab(\'apikeys\'); return false;" style="color:#ffd700;">API Management</a>',
+        model_vision_online: 'Vision Model - Online', model_text_online: 'Text Model - Online',
+        model_conn_failed: 'Connection Failed', model_vision_notest: 'Vision Model - Not Tested', model_text_notest: 'Text Model - Not Tested',
+        model_not_configured: 'API Key Not Configured', model_config_page_hint: 'Please configure in API Management',
+        btn_retest: 'Retest', btn_test: 'Test Connection',
+        conn_online: 'Online', conn_offline: 'Offline',
+        empty_api_keys: 'No API keys',
+        comp_start_date: 'Start Date', comp_end_date: 'End Date',
+        th_time_comp: 'Time', th_image_comp: 'Image', th_ai_hale: 'AI Hale', th_human_hale: 'Human Hale',
+        th_ai_complexity: 'AI Complexity', th_human_complexity: 'Human Complexity', th_status: 'Status',
+        empty_comp: 'No comparison records',
+        modal_review_title: 'Manual Review', modal_review_ph: 'Your Name',
+        modal_review_fields_ph: 'Comma separated, e.g.: hale_classification,complexity_score',
+        modal_review_comments_ph: 'Review comments...', btn_submit: 'Submit', btn_cancel_modal: 'Cancel',
+        modal_trace_title: 'Traceability Details',
+        apikeys_title: 'API Key Management', add_key_title: 'Add API Key', key_name: 'Name',
+        key_provider: 'Provider', key_value: 'API Key', key_base_url: 'Base URL', key_model: 'Model Name',
+        import_keys_title: 'Batch Import API Keys', import_json: 'JSON Array', edit_key_title: 'Edit API Key',
+        actions: 'Actions', comparison_title: 'Batch Comparison', comparison_details: 'Comparison Details',
+        param_mod_title: 'Parameter Modification', param_name: 'Parameter', param_new_value: 'New Value', param_reason: 'Reason',
+        review_detail_title: 'Review Detail', test: 'Test', edit: 'Edit', delete: 'Delete', import: 'Import',
+        confirm_delete: 'Are you sure to delete this key?', total_compared: 'Total Compared', accuracy_rate: 'Accuracy Rate',
+        correction_rate: 'Correction Rate', dispute_rate: 'Dispute Rate', avg_complexity_diff: 'Avg Complexity Diff',
+        trend_data: 'Trend Data', confirmed: 'Confirmed', corrected: 'Corrected', disputed: 'Disputed',
+        pending_param_changes: 'Pending Parameter Changes', remove: 'Remove',
+    }
+};
+let currentLang = localStorage.getItem('ai_sun_lang') || 'zh';
+
+function switchLang(lang) {
+    currentLang = lang;
+    localStorage.setItem('ai_sun_lang', lang);
+    const dict = translations[lang];
+    if (!dict) return;
+
+    // Update elements with data-i18n attribute
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) {
+            if (el.tagName === 'INPUT' && el.type === 'text') {
+                // update placeholder
+                const zhPlaceholder = el.getAttribute('data-i18n-placeholder');
+                if (zhPlaceholder && translations['en'][key]) {
+                    el.placeholder = dict[key];
+                } else {
+                    el.placeholder = dict[key];
+                }
+            } else if (el.tagName === 'OPTION') {
+                el.textContent = dict[key];
+            } else {
+                el.innerHTML = dict[key];
+            }
+        }
+    });
+
+    // Update language selector
+    const sel = document.getElementById('langSelect');
+    if (sel) sel.value = lang;
+}
+
+function t(key) {
+    return (translations[currentLang] && translations[currentLang][key]) || key;
+}
+
+// Apply language on load - call immediately since script is at bottom of page
+function applySavedLang() {
+    const saved = localStorage.getItem('ai_sun_lang');
+    if (saved) {
+        currentLang = saved;
+        const sel = document.getElementById('langSelect');
+        if (sel) sel.value = saved;
+        switchLang(saved);
+    }
+}
+applySavedLang();
+
+// ===== API Key Management =====
+async function loadApiKeys() {
+    try {
+        const r = await fetch(`${API}/api-keys/keys`);
+        const d = await r.json();
+        const items = d.data || [];
+        document.getElementById('apiKeyTable').innerHTML = items.map(k =>
+            `<tr><td class="monospace">${k.id?.slice(-10)||'-'}</td><td>${k.name||'-'}</td>
+            <td>${k.provider||'-'}</td><td class="monospace">${k.api_key ? k.api_key.slice(0,4)+'****'+k.api_key.slice(-4) : '-'}</td>
+            <td class="monospace">${k.api_base_url||'-'}</td><td>${k.model_name||'-'}</td>
+            <td><div class="btn-group">
+                <button class="btn btn-secondary btn-sm" onclick="testApiKey('${k.id}')">${t('test')}</button>
+                <button class="btn btn-secondary btn-sm" onclick="editApiKey('${k.id}', '${k.name}', '${k.provider}', '${k.api_base_url}', '${k.model_name}')">${t('edit')}</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteApiKey('${k.id}')">${t('delete')}</button>
+            </div></td></tr>`
+        ).join('') || '<tr><td colspan="7" class="empty">暂无API密钥</td></tr>';
+    } catch { toast('加载API密钥失败','error'); }
+}
+
+function showAddApiKeyForm() {
+    document.getElementById('apiKeyForm').style.display = 'block';
+    document.getElementById('apiKeyEditForm').style.display = 'none';
+    document.getElementById('apiKeyImportForm').style.display = 'none';
+    ['akName','akProvider','akKey','akBaseUrl','akModelName'].forEach(id => document.getElementById(id).value = '');
+}
+
+function showImportApiKeysForm() {
+    document.getElementById('apiKeyImportForm').style.display = 'block';
+    document.getElementById('apiKeyForm').style.display = 'none';
+    document.getElementById('apiKeyEditForm').style.display = 'none';
+    document.getElementById('akImportJson').value = '';
+}
+
+async function saveApiKey() {
+    const body = {
+        name: document.getElementById('akName').value,
+        provider: document.getElementById('akProvider').value,
+        api_key: document.getElementById('akKey').value,
+        api_base_url: document.getElementById('akBaseUrl').value,
+        model_name: document.getElementById('akModelName').value
+    };
+    if (!body.name || !body.provider || !body.api_key) { toast('请填写名称、提供商和API Key','warning'); return; }
+    try {
+        const r = await fetch(`${API}/api-keys/keys`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        const d = await r.json();
+        if (d.success) { toast('API密钥已添加','success'); document.getElementById('apiKeyForm').style.display='none'; loadApiKeys(); }
+        else toast(d.error?.message||'添加失败','error');
+    } catch(e) { toast('添加失败: '+e.message,'error'); }
+}
+
+async function testApiKey(keyId) {
+    try {
+        toast('正在测试连通性...','info');
+        const r = await fetch(`${API}/api-keys/keys/${keyId}/test`, {method:'POST'});
+        const d = await r.json();
+        if (d.success) toast('连通性测试成功','success');
+        else toast(d.error?.message||'测试失败','error');
+    } catch(e) { toast('测试失败: '+e.message,'error'); }
+}
+
+function editApiKey(id, name, provider, baseUrl, modelName) {
+    document.getElementById('apiKeyEditForm').style.display = 'block';
+    document.getElementById('apiKeyForm').style.display = 'none';
+    document.getElementById('apiKeyImportForm').style.display = 'none';
+    document.getElementById('akEditId').value = id;
+    document.getElementById('akEditName').value = name;
+    document.getElementById('akEditProvider').value = provider;
+    document.getElementById('akEditKey').value = '';
+    document.getElementById('akEditBaseUrl').value = baseUrl;
+    document.getElementById('akEditModelName').value = modelName;
+}
+
+async function updateApiKey() {
+    const id = document.getElementById('akEditId').value;
+    const body = {
+        name: document.getElementById('akEditName').value,
+        provider: document.getElementById('akEditProvider').value,
+        api_base_url: document.getElementById('akEditBaseUrl').value,
+        model_name: document.getElementById('akEditModelName').value
+    };
+    const key = document.getElementById('akEditKey').value;
+    if (key) body.api_key = key;
+    try {
+        const r = await fetch(`${API}/api-keys/keys/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        const d = await r.json();
+        if (d.success) { toast('API密钥已更新','success'); document.getElementById('apiKeyEditForm').style.display='none'; loadApiKeys(); }
+        else toast(d.error?.message||'更新失败','error');
+    } catch(e) { toast('更新失败: '+e.message,'error'); }
+}
+
+async function deleteApiKey(keyId) {
+    if (!confirm(t('confirm_delete'))) return;
+    try {
+        const r = await fetch(`${API}/api-keys/keys/${keyId}`, {method:'DELETE'});
+        const d = await r.json();
+        if (d.success) { toast('API密钥已删除','success'); loadApiKeys(); }
+        else toast(d.error?.message||'删除失败','error');
+    } catch(e) { toast('删除失败: '+e.message,'error'); }
+}
+
+async function importApiKeys() {
+    const jsonStr = document.getElementById('akImportJson').value;
+    if (!jsonStr) { toast('请输入JSON数据','warning'); return; }
+    try {
+        const keys = JSON.parse(jsonStr);
+        if (!Array.isArray(keys)) { toast('JSON必须是数组格式','error'); return; }
+        const r = await fetch(`${API}/api-keys/keys/import`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(keys)});
+        const d = await r.json();
+        if (d.success) { toast(`成功导入${d.data?.imported_count || keys.length}条密钥`,'success'); document.getElementById('apiKeyImportForm').style.display='none'; loadApiKeys(); }
+        else toast(d.error?.message||'导入失败','error');
+    } catch(e) { toast('导入失败: '+e.message,'error'); }
+}
+
+// ===== Batch Comparison =====
+async function loadComparison() {
+    try {
+        const start = document.getElementById('compStart').value;
+        const end = document.getElementById('compEnd').value;
+        const params = new URLSearchParams();
+        if (start) params.set('start_date', start);
+        if (end) params.set('end_date', end);
+
+        // Load summary
+        const r = await fetch(`${API}/comparison/summary?${params}`);
+        const d = await r.json();
+        const s = d.data || {};
+        document.getElementById('compMetrics').innerHTML = [
+            [t('total_compared'), s.total_compared || 0],
+            [t('accuracy_rate'), `${((s.accuracy_rate||0)*100).toFixed(1)}%`],
+            [t('correction_rate'), `${((s.correction_rate||0)*100).toFixed(1)}%`],
+            [t('dispute_rate'), `${((s.dispute_rate||0)*100).toFixed(1)}%`],
+            [t('avg_complexity_diff'), s.avg_complexity_diff?.toFixed(2) || '0'],
+        ].map(([l,v]) => `<div class="metric"><div class="metric-value">${v}</div><div class="metric-label">${l}</div></div>`).join('') || '<div class="empty">暂无对比数据</div>';
+
+        // Load details
+        const r2 = await fetch(`${API}/comparison/details?${params}`);
+        const d2 = await r2.json();
+        const items = d2.data || [];
+        const statusLabels = {confirmed: t('confirmed'), corrected: t('corrected'), disputed: t('disputed')};
+        document.getElementById('compTable').innerHTML = items.map(c =>
+            `<tr><td>${new Date(c.compared_at||c.created_at).toLocaleString()}</td>
+            <td>${c.image_filename || c.image_id?.slice(-12) || '-'}</td>
+            <td>${c.ai_hale_classification || '-'}</td><td>${c.human_hale_classification || '-'}</td>
+            <td>${c.ai_complexity_score?.toFixed(1) || '-'}</td><td>${c.human_complexity_score?.toFixed(1) || '-'}</td>
+            <td><span class="review-status rs-${c.status}">${statusLabels[c.status]||c.status||'-'}</span></td>
+            <td><button class="btn btn-secondary btn-sm" onclick="viewCompDetail('${c.id}')">详情</button></td></tr>`
+        ).join('') || '<tr><td colspan="8" class="empty">暂无对比记录</td></tr>';
+
+        // Load trends
+        try {
+            const r3 = await fetch(`${API}/comparison/trends?${params}`);
+            const d3 = await r3.json();
+            const trends = d3.data || [];
+            if (trends.length > 0) {
+                let tHtml = `<h3 style="color:#ffd700;font-size:0.95rem;margin:1rem 0 0.5rem;">${t('trend_data')}</h3>`;
+                tHtml += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>对比数</th><th>准确率</th><th>修正率</th><th>争议率</th></tr></thead><tbody>';
+                tHtml += trends.map(tr =>
+                    `<tr><td>${tr.date||tr.day||'-'}</td><td>${tr.count||tr.compared_count||0}</td>
+                    <td>${((tr.accuracy_rate||0)*100).toFixed(1)}%</td><td>${((tr.correction_rate||0)*100).toFixed(1)}%</td>
+                    <td>${((tr.dispute_rate||0)*100).toFixed(1)}%</td></tr>`
+                ).join('');
+                tHtml += '</tbody></table></div>';
+                document.getElementById('compTrends').innerHTML = tHtml;
+            }
+        } catch {}
+    } catch { toast('加载对比数据失败','error'); }
+}
+
+function exportCompCSV() {
+    const start = document.getElementById('compStart').value;
+    const end = document.getElementById('compEnd').value;
+    const params = new URLSearchParams();
+    if (start) params.set('start_date', start);
+    if (end) params.set('end_date', end);
+    window.open(`${API}/comparison/export/csv?${params}`, '_blank');
+    toast('CSV导出中...','success');
+}
+
+function exportCompJSON() {
+    const start = document.getElementById('compStart').value;
+    const end = document.getElementById('compEnd').value;
+    const params = new URLSearchParams();
+    if (start) params.set('start_date', start);
+    if (end) params.set('end_date', end);
+    window.open(`${API}/comparison/export/json?${params}`, '_blank');
+    toast('JSON导出中...','success');
+}
+
+function viewCompDetail(id) {
+    toast(`查看对比详情: ${id}`, 'info');
+}
+
+// ===== Parameter Modification =====
+let pendingParamChanges = [];
+
+function addParamChange() {
+    const paramName = document.getElementById('pmParamName').value;
+    const newValue = document.getElementById('pmNewValue').value;
+    const reason = document.getElementById('pmReason').value;
+    if (!paramName || !newValue) { toast('请填写参数名和新值','warning'); return; }
+    pendingParamChanges.push({paramName, newValue, reason: reason || '未填写'});
+    renderParamChanges();
+    document.getElementById('pmParamName').value = '';
+    document.getElementById('pmNewValue').value = '';
+    document.getElementById('pmReason').value = '';
+}
+
+function removeParamChange(index) {
+    pendingParamChanges.splice(index, 1);
+    renderParamChanges();
+}
+
+function renderParamChanges() {
+    const el = document.getElementById('pmPendingList');
+    if (pendingParamChanges.length === 0) {
+        el.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.8rem;">暂无待提交的修改</p>';
+        return;
+    }
+    let html = `<h4 style="color:#ffd700;font-size:0.85rem;margin-bottom:0.5rem;">${t('pending_param_changes')} (${pendingParamChanges.length})</h4>`;
+    html += pendingParamChanges.map((p, i) =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0.6rem;background:rgba(255,255,255,0.05);border-radius:6px;margin-bottom:0.3rem;font-size:0.82rem;">
+            <span><strong>${p.paramName}</strong> → ${p.newValue} <span style="color:rgba(255,255,255,0.5);font-size:0.75rem;">(${p.reason})</span></span>
+            <button class="btn btn-danger btn-sm" onclick="removeParamChange(${i})">${t('remove')}</button>
+        </div>`
+    ).join('');
+    el.innerHTML = html;
+}
+
+// Initialize pending param list
+renderParamChanges();
+
+// ===== Review Detail =====
+async function viewReviewDetail(reviewId) {
+    try {
+        // Try to fetch review detail from API
+        const r = await fetch(`${API}/reviews/${reviewId}`);
+        const d = await r.json();
+        if (!d.success) throw new Error('未找到记录');
+        const rv = d.data;
+        const statusLabels = {pending:'待确认',confirmed:'已确认',corrected:'已修正',disputed:'有争议'};
+        let html = `
+            <div class="trace-steps">
+                <div class="trace-step"><div class="label">复核ID</div><div class="detail monospace">${rv.id||'-'}</div></div>
+                <div class="trace-step"><div class="label">报告ID</div><div class="detail monospace">${rv.report_id||'-'}</div></div>
+                <div class="trace-step"><div class="label">任务ID</div><div class="detail monospace">${rv.task_id||'-'}</div></div>
+                <div class="trace-step"><div class="label">复核人</div><div class="detail">${rv.reviewer||'-'}</div></div>
+                <div class="trace-step"><div class="label">状态</div><div class="detail"><span class="review-status rs-${rv.verification_status}">${statusLabels[rv.verification_status]||rv.verification_status}</span></div></div>
+                <div class="trace-step"><div class="label">修正字段</div><div class="detail">${(rv.correction_fields||[]).join(', ')||'-'}</div></div>
+                <div class="trace-step"><div class="label">备注</div><div class="detail">${rv.comments||'-'}</div></div>`;
+        // Show parameter change history if available
+        if (rv.modified_params && rv.modified_params.length > 0) {
+            html += `<div class="trace-step"><div class="label">参数修改历史</div><div class="trace-json">${JSON.stringify(rv.modified_params, null, 2)}</div></div>`;
+        }
+        if (rv.param_change_reason) {
+            html += `<div class="trace-step"><div class="label">参数修改原因</div><div class="detail">${rv.param_change_reason}</div></div>`;
+        }
+        html += `<div class="trace-step"><div class="label">创建时间</div><div class="detail">${rv.created_at||'-'}</div></div>
+            </div>`;
+        document.getElementById('reviewDetail').innerHTML = html;
+        document.getElementById('reviewDetailModal').classList.add('active');
+    } catch(e) {
+        toast('加载复核详情失败: '+e.message,'warning');
+    }
+}
+
+// ===== Overlay Controls =====
+let overlayState = {
+    sunspot: true,
+    plage: true,
+    flare: true,
+    prominence: true,
+    facula: true,
+};
+let overlayFeatures = [];
+let currentAnnotatedImageUrl = '';
+
+// Get badge color for feature type
+function getBadgeColor(type) {
+    const colors = {
+        sunspot: '#4ade80',
+        plage: '#38bdf8',
+        flare: '#f87171',
+        prominence: '#facc15',
+        facula: '#a78bfa',
+        filament: '#b39ddb',
+        bright_region: '#facc15',
+    };
+    return colors[type] || '#ccc';
+}
+
+function showOverlayControls(features) {
+    overlayFeatures = features || [];
+    // Also store in global for toggleFeatureChecked access
+    window._currentFeatures = overlayFeatures;
+    const controls = document.getElementById('overlayControls');
+    if (controls) controls.style.display = 'block';
+    updateOverlayButtons();
+    redrawOverlays();
+}
+
+function hideOverlayControls() {
+    const controls = document.getElementById('overlayControls');
+    if (controls) controls.style.display = 'none';
+    const canvas = document.getElementById('overlayCanvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+function toggleOverlay(type) {
+    overlayState[type] = !overlayState[type];
+    updateOverlayButtons();
+    redrawOverlays();
+}
+
+function toggleAllOverlays() {
+    const allVisible = Object.values(overlayState).every(v => v);
+    Object.keys(overlayState).forEach(k => {
+        overlayState[k] = !allVisible;
+    });
+    updateOverlayButtons();
+    redrawOverlays();
+}
+
+function viewReportImage() {
+    if (!curTask) {
+        alert('请先完成图像分析');
+        return;
+    }
+    const reportUrl = `/api/v1/analyze/${curTask}/report-image`;
+    window.open(reportUrl, '_blank');
+}
+
+function exportDetectionCSV() {
+    if (!curTask) {
+        alert('请先完成图像分析');
+        return;
+    }
+    const csvUrl = `/api/v1/analyze/${curTask}/detection-report?format=csv`;
+    window.open(csvUrl, '_blank');
+}
+
+function exportReportPDF() {
+    if (!curTask) {
+        alert('请先完成图像分析');
+        return;
+    }
+    const pdfUrl = `/api/v1/analyze/${curTask}/report-pdf`;
+    window.open(pdfUrl, '_blank');
+}
+
+function updateSelectAllState() {
+    const cbs = document.querySelectorAll('.hist-select');
+    const allCb = document.getElementById('histSelectAll');
+    allCb.checked = cbs.length > 0 && Array.from(cbs).every(cb => cb.checked);
+}
+
+function exportBatchPDF() {
+    // Get selected task IDs
+    const taskIds = getSelectedHistoryTaskIds();
+    if (taskIds.length === 0) {
+        alert('请先勾选要导出的历史记录');
+        return;
+    }
+    
+    if (!confirm(`确定要导出 ${taskIds.length} 份选定报告的PDF吗？`)) {
+        return;
+    }
+    
+    // Call batch export API
+    fetch('/api/v1/analyze/batch-export-pdf', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({task_ids: taskIds})
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('导出失败');
+        return res.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `solar_batch_report_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    })
+    .catch(err => alert('批量导出失败: ' + err.message));
+}
+
+function updateOverlayButtons() {
+    const types = ['sunspot', 'plage', 'flare', 'prominence', 'facula'];
+    const ids = ['overlayBtnSunspot', 'overlayBtnPlage', 'overlayBtnFlare', 'overlayBtnProminence', 'overlayBtnFacula'];
+    types.forEach((type, i) => {
+        const btn = document.getElementById(ids[i]);
+        if (!btn) return;
+        if (overlayState[type]) {
+            btn.style.opacity = '1';
+            btn.style.boxShadow = '0 0 8px currentColor';
+        } else {
+            btn.style.opacity = '0.4';
+            btn.style.boxShadow = 'none';
+        }
+    });
+}
+
+function redrawOverlays() {
+    const canvas = document.getElementById('overlayCanvas');
+    const img = document.getElementById('annotatedImage');
+    if (!canvas || !img || !img.src) return;
+
+    // Match canvas size to image display size
+    const rect = img.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Calculate scale factors
+    const naturalW = img.naturalWidth || 1;
+    const naturalH = img.naturalHeight || 1;
+    const scaleX = rect.width / naturalW;
+    const scaleY = rect.height / naturalH;
+
+    // Draw features - respect both type-level overlay state AND individual checked status
+    overlayFeatures.forEach(f => {
+        const type = f.type || f.feature_type || 'unknown';
+        if (!overlayState[type]) return;
+        // Respect individual feature checked status
+        if (f.checked === false) return;
+
+        const x = (f.position_x || f.x || 0) * scaleX;
+        const y = (f.position_y || f.y || 0) * scaleY;
+        const w = (f.bbox_width || f.width || 20) * scaleX;
+        const h = (f.bbox_height || f.height || 20) * scaleY;
+        const radius = (f.radius || 10) * scaleX;
+
+        const colors = {
+            sunspot: '#4ade80',
+            plage: '#38bdf8',
+            flare: '#f87171',
+            prominence: '#facc15',
+            facula: '#a78bfa',
+        };
+        const color = colors[type] || '#fff';
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+
+        if (radius > 0 && !w && !h) {
+            // Circle
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+        } else if (w && h) {
+            // Rectangle
+            ctx.strokeRect(x - w/2, y - h/2, w, h);
+        }
+
+        // Draw feature index badge (numbered circle)
+        const idx = f.index || '';
+        if (idx) {
+            ctx.setLineDash([]);
+            // Draw numbered badge
+            const badgeR = 10;
+            ctx.beginPath();
+            ctx.arc(x, y - radius - badgeR - 4, badgeR, 0, 2 * Math.PI);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(idx, x, y - radius - badgeR - 4);
+            ctx.textAlign = 'start';
+            ctx.textBaseline = 'alphabetic';
+        }
+
+        // Draw label with index
+        ctx.setLineDash([]);
+        ctx.fillStyle = color;
+        ctx.font = 'bold 12px sans-serif';
+        const label = (idx ? `#${idx} ` : '') + (f.label || type);
+        ctx.fillText(label, x + radius + 5, y - radius - 4);
+    });
+}
+
+// Redraw overlays when image loads
+document.addEventListener('DOMContentLoaded', () => {
+    const img = document.getElementById('annotatedImage');
+    if (img) {
+        img.addEventListener('load', () => {
+            setTimeout(redrawOverlays, 100);
+        });
+    }
+    // Load available AI models for the model selection UI
+    loadAvailableModels();
+    // Load saved prompt template configuration
+    loadPromptConfig();
+});
+</script>
+</body>
+</html>
